@@ -7,12 +7,6 @@ require_once __DIR__ . '/../includes/auth_helper.php';
 require_login();
 $user_id = get_user_id();
 
-function log_action($pdo, $user_id, $action, $details = '') {
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$user_id, $action, $details, $ip]);
-}
-
 $action = $_GET['action'] ?? 'list';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

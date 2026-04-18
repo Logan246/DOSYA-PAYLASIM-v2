@@ -21,7 +21,6 @@ if ($action === 'ping') {
         
         // Log tool usage
         require_once __DIR__ . '/../includes/db.php';
-        require_once __DIR__ . '/logs.php';
         log_action($pdo, get_user_id(), 'TOOL_PING', "IP: $ip, Sonuç: " . ($result === 0 ? 'Online' : 'Offline'));
 
         echo json_encode([

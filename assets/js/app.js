@@ -614,7 +614,103 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Event Listeners: Tabs
+    // Activity Logs
+    const loadLogs = async () => {
+        try {
+            const response = await fetch('api/logs.php?action=list');
+            const result = await response.json();
+            if (result.success) {
+                renderLogs(result.logs);
+            }
+        } catch (error) {
+            console.error('Logs load error:', error);
+        }
+    };
+
+    const renderLogs = (logs) => {
+        logsList.innerHTML = '';
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50/50 dark:hover:bg-dark-bg/50 transition-colors';
+            tr.innerHTML = `
+                <td class="px-8 py-4 font-bold text-blue-600">${log.username || 'Sistem'}</td>
+                <td class="px-8 py-4"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-dark-bg text-[10px] font-black">${log.action}</span></td>
+                <td class="px-8 py-4 text-gray-500">${log.details}</td>
+                <td class="px-8 py-4 font-mono text-[10px]">${log.ip_address}</td>
+                <td class="px-8 py-4 text-gray-400">${new Date(log.created_at).toLocaleString('tr-TR')}</td>
+            `;
+            logsList.appendChild(tr);
+        });
+    };
+
+    // IT Tools Logic
+    pingBtn.onclick = async () => {
+        const ip = pingIpInput.value.trim();
+        if (!ip) return;
+        
+        pingResult.classList.remove('hidden');
+        pingResult.textContent = 'Ping atılıyor...';
+        pingBtn.disabled = true;
+
+        try {
+            const response = await fetch('api/tools.php?action=ping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip })
+            });
+            const result = await response.json();
+            if (result.success) {
+                const color = result.online ? 'text-green-500' : 'text-red-500';
+                const status = result.online ? 'ONLINE' : 'OFFLINE';
+                pingResult.innerHTML = `<span class="${color} font-black">[${status}]</span>\n${result.output}`;
+            } else {
+                pingResult.textContent = result.message;
+            }
+        } catch (error) {
+            pingResult.textContent = 'Hata oluştu.';
+        } finally {
+            pingBtn.disabled = false;
+        }
+    };
+
+    genPasswordBtn.onclick = async () => {
+        try {
+            const response = await fetch('api/tools.php?action=password');
+            const result = await response.json();
+            if (result.success) {
+                genPasswordDisplay.textContent = result.password;
+                showNotification('Şifre oluşturuldu');
+            }
+        } catch (error) {}
+    };
+
+    b64EncodeBtn.onclick = () => {
+        try {
+            b64Input.value = btoa(unescape(encodeURIComponent(b64Input.value)));
+            showNotification('Base64 Encode edildi');
+        } catch (e) { showNotification('Hata oluştu', 'error'); }
+    };
+
+    b64DecodeBtn.onclick = () => {
+        try {
+            b64Input.value = decodeURIComponent(escape(atob(b64Input.value)));
+            showNotification('Base64 Decode edildi');
+        } catch (e) { showNotification('Hata oluştu', 'error'); }
+    };
+
+    // Dark Mode Logic
+    const initDarkMode = () => {
+        if (isDarkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+    };
+
+    darkModeToggle.onclick = () => {
+        isDarkMode = !isDarkMode;
+        localStorage.setItem('darkMode', isDarkMode);
+        initDarkMode();
+    };
+
+    // Tab Logic
     tabButtons.forEach(btn => {
         btn.onclick = () => {
             const tabId = btn.getAttribute('data-tab');

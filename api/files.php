@@ -98,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$user_id, $new_filename, $original_name, 'uploads/' . $new_filename, $file_size, $mime_type]);
                 
                 // Log upload
-                require_once __DIR__ . '/logs.php';
                 log_action($pdo, $user_id, 'UPLOAD', "Dosya yüklendi: $original_name");
                 
                 echo json_encode(['success' => true, 'message' => 'File uploaded successfully']);

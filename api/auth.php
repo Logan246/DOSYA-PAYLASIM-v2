@@ -47,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             login_user($user['id'], $user['username']);
             
             // Log login
-            require_once __DIR__ . '/logs.php';
             log_action($pdo, $user['id'], 'LOGIN', 'Kullanıcı giriş yaptı');
             
             echo json_encode(['success' => true, 'message' => 'Login successful', 'username' => $user['username']]);
