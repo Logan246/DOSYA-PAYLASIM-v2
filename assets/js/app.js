@@ -1,3 +1,4 @@
+console.log('App.js yüklendi');
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const authContainer = document.getElementById('auth-container');
@@ -27,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridViewContainer = document.getElementById('grid-view-container');
     const noteInput = document.getElementById('note-input');
     const saveNoteBtn = document.getElementById('save-note-btn');
-    const notesContainer = document.getElementById('notes-container');
+    const notesList = document.getElementById('notes-list');
     const infoIp = document.getElementById('info-ip');
-    const infoUa = document.getElementById('info-ua');
+    const connectionInfo = document.getElementById('connection-info');
     const darkModeToggle = document.getElementById('dark-mode-toggle');
     const sidebar = document.getElementById('sidebar');
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -46,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const b64Input = document.getElementById('b64-input');
     const b64EncodeBtn = document.getElementById('b64-encode');
     const b64DecodeBtn = document.getElementById('b64-decode');
-    const logsList = document.getElementById('logs-list');
+    const logTableBody = document.getElementById('log-table-body');
     const refreshLogsBtn = document.getElementById('refresh-logs');
     const mostFileTypeDisplay = document.getElementById('most-file-type');
     const serverOsDisplay = document.getElementById('server-os');
@@ -64,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const portNumberInput = document.getElementById('port-number');
     const portCheckBtn = document.getElementById('port-check-btn');
     const portResultDisplay = document.getElementById('port-result');
+    const ipInfoInput = document.getElementById('ip-info-input');
+    const ipInfoBtn = document.getElementById('ip-info-btn');
+    const ipInfoResult = document.getElementById('ip-info-result');
     
     // New Modal Elements
     const editModal = document.getElementById('edit-modal');
@@ -84,10 +88,64 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentView = 'list'; // 'list' or 'grid'
     let currentFilter = 'all';
     let isDarkMode = localStorage.getItem('darkMode') === 'true';
-    let selectedPriority = 'low';
+    let selectedPriority = 'normal';
     let currentEditingFileId = null;
     let currentTaggingFileId = null;
     let sortDirection = 'desc'; // 'asc' or 'desc' for date
+
+    // --- LOAD NOTES (Moved to top & Repaired) ---
+    const loadNotes = async () => {
+        alert('JS buraya girdi!');
+        console.log('Notlar yükleniyor...');
+        if (!notesList && !dashboardNotesMini) return;
+
+        try {
+            const response = await fetch('api/notes.php?action=list');
+            const result = await response.json(); // Fixed result variable
+            if (result && result.success) {
+                notes = Array.isArray(result.notes) ? result.notes : [];
+                renderNotes();
+                renderMiniNotes();
+            }
+        } catch (error) {
+            console.error('Notes load error:', error);
+        }
+    };
+
+    const renderNotes = () => {
+        if (!notesList) return;
+        notesList.innerHTML = '';
+        
+        if (notes.length === 0) {
+            notesList.innerHTML = '<p class="col-span-full text-xs text-center text-gray-400 py-8 font-bold">Henüz not eklenmemiş.</p>';
+            return;
+        }
+
+        notes.forEach(note => {
+            const div = document.createElement('div');
+            const priorityColors = {
+                normal: 'bg-gray-50 dark:bg-dark-bg border-gray-100 dark:border-dark-border text-gray-700 dark:text-gray-300',
+                medium: 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-100 dark:border-yellow-900/20 text-yellow-700 dark:text-yellow-500',
+                high: 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20 text-red-700 dark:text-red-500'
+            };
+            const colorClass = priorityColors[note.priority] || priorityColors.normal;
+            
+            div.className = `${colorClass} p-5 rounded-2xl border shadow-sm relative group transition-all hover:shadow-md`;
+            div.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-1.5 h-1.5 rounded-full ${note.priority === 'high' ? 'bg-red-500' : (note.priority === 'medium' ? 'bg-yellow-500' : 'bg-gray-400')}"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest opacity-50">${note.priority}</span>
+                </div>
+                <p class="text-sm leading-relaxed whitespace-pre-wrap break-words pr-6">${note.content}</p>
+                <p class="text-[10px] mt-4 opacity-40 font-bold">${new Date(note.created_at).toLocaleString('tr-TR')}</p>
+                <button onclick="deleteNote(${note.id})" class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all text-red-500">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            `;
+            notesList.appendChild(div);
+        });
+        if (window.lucide) lucide.createIcons();
+    };
 
     // Helper: Get FontAwesome Icon and Color for Mime Type
     const getFileFAIcon = (mimeType, originalName) => {
@@ -193,10 +251,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dashboardContainer) dashboardContainer.classList.remove('hidden');
         if (currentUsername && user) currentUsername.textContent = user.username;
         if (userAvatar && user) userAvatar.textContent = user.username.charAt(0).toUpperCase();
-        loadFiles();
-        loadNotes();
-        loadConnectionInfo();
-        loadLogs();
+        
+        // Varsayılan sekmeyi (Dashboard) aktif et
+        tabContents.forEach(c => c.classList.add('hidden'));
+        const dashTab = document.getElementById('tab-dashboard');
+        if (dashTab) dashTab.classList.remove('hidden');
+
+        // GLOBAL ERROR CATCH: Bir modül hata verirse diğerleri durmasın
+        try { loadFiles(); } catch(e) { console.error("Files fail", e); }
+        try { loadNotes(); } catch(e) { console.error("Notes fail", e); }
+        try { loadConnectionInfo(); } catch(e) { console.error("Info fail", e); }
+        try { loadLogs(); } catch(e) { console.error("Logs fail", e); }
+        
         if (window.lucide) lucide.createIcons();
     };
 
@@ -283,6 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // File Logic
     const loadFiles = async () => {
+        if (!filesList && !gridViewContainer) return;
+        
         try {
             const response = await fetch('api/files.php?action=list');
             const result = await response.json();
@@ -525,12 +593,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Connection Info (Floating/Bottom)
     const loadConnectionInfo = async () => {
+        if (!connectionInfo && !infoIp) return;
+        
         try {
             const response = await fetch('api/info.php');
             const result = await response.json();
             if (result && result.success) {
-                if (infoIp) infoIp.textContent = result.ip;
-                if (infoUa) infoUa.textContent = result.user_agent;
+                if (connectionInfo) connectionInfo.textContent = `Bağlantı: ${result.ip}`;
                 if (serverOsDisplay) serverOsDisplay.textContent = `OS: ${result.os}`;
                 if (phpVersionDisplay) phpVersionDisplay.textContent = `PHP: ${result.php_version}`;
                 if (serverTimeDisplay) serverTimeDisplay.textContent = result.server_time;
@@ -545,34 +614,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     systemUptime.textContent = result.uptime;
                 }
 
-                const floatingIp = document.querySelector('.fixed.bottom-6 #info-ip');
+                const floatingIp = document.querySelector('.fixed.bottom-6 #connection-info');
                 if (floatingIp) floatingIp.textContent = result.ip;
             }
         } catch (error) {
             console.error('Info load error:', error);
-            if (infoIp) infoIp.textContent = 'Hata';
-            if (infoUa) infoUa.textContent = 'Bilgi alınamadı';
-        }
-    };
-    const loadNotes = async () => {
-        try {
-            const response = await fetch('api/notes.php?action=list');
-            const result = await response.json();
-            if (result && result.success) {
-                notes = result.notes || [];
-                renderNotes();
-                renderMiniNotes();
-            }
-        } catch (error) {
-            console.error('Notes load error:', error);
+            if (connectionInfo) connectionInfo.textContent = 'Hata';
         }
     };
 
     const renderMiniNotes = () => {
         if (!dashboardNotesMini) return;
-        dashboardNotesMini.innerHTML = '';
+        if (dashboardNotesMini) dashboardNotesMini.innerHTML = '';
         if (notes.length === 0) {
-            dashboardNotesMini.innerHTML = '<p class="text-[10px] text-gray-400 italic">Henüz not yok...</p>';
+            if (dashboardNotesMini) dashboardNotesMini.innerHTML = '<p class="text-[10px] text-gray-400 italic">Henüz not yok...</p>';
             return;
         }
 
@@ -588,40 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             dashboardNotesMini.appendChild(div);
         });
-    };
-
-    const renderNotes = () => {
-        if (!notesContainer) return;
-        notesContainer.innerHTML = '';
-        if (notes.length === 0) {
-            notesContainer.innerHTML = '<p class="col-span-full text-xs text-center text-gray-400 py-8 font-bold">Henüz not yok.</p>';
-            return;
-        }
-
-        notes.forEach(note => {
-            const div = document.createElement('div');
-            const priorityColors = {
-                low: 'bg-gray-50 dark:bg-dark-bg border-gray-100 dark:border-dark-border text-gray-700 dark:text-gray-300',
-                medium: 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-100 dark:border-yellow-900/20 text-yellow-700 dark:text-yellow-500',
-                high: 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20 text-red-700 dark:text-red-500'
-            };
-            const colorClass = priorityColors[note.priority] || priorityColors.low;
-            
-            div.className = `${colorClass} p-5 rounded-2xl border shadow-sm relative group transition-all hover:shadow-md`;
-            div.innerHTML = `
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="w-1.5 h-1.5 rounded-full ${note.priority === 'high' ? 'bg-red-500' : (note.priority === 'medium' ? 'bg-yellow-500' : 'bg-gray-400')}"></span>
-                    <span class="text-[9px] font-black uppercase tracking-widest opacity-50">${note.priority}</span>
-                </div>
-                <p class="text-sm leading-relaxed whitespace-pre-wrap break-words pr-6">${note.content}</p>
-                <p class="text-[10px] mt-4 opacity-40 font-bold">${new Date(note.created_at).toLocaleString('tr-TR')}</p>
-                <button onclick="deleteNote(${note.id})" class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all text-red-500">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-            `;
-            notesContainer.appendChild(div);
-        });
-        if (window.lucide) lucide.createIcons();
     };
 
     if (saveNoteBtn) {
@@ -714,15 +735,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Edit Modal Logic
     window.openEditModal = async (id, filename) => {
         currentEditingFileId = id;
-        editFilenameDisplay.textContent = filename;
-        editModal.classList.remove('hidden');
-        editContentTextarea.value = 'Yükleniyor...';
+        if (editFilenameDisplay) editFilenameDisplay.textContent = filename;
+        if (editModal) editModal.classList.remove('hidden');
+        if (editContentTextarea) editContentTextarea.value = 'Yükleniyor...';
         
         try {
             const response = await fetch(`api/files.php?action=get_content&id=${id}`);
             const result = await response.json();
             if (result.success) {
-                editContentTextarea.value = result.content;
+                if (editContentTextarea) editContentTextarea.value = result.content;
             } else {
                 showNotification(result.message, 'error');
                 closeEditModal();
@@ -763,8 +784,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tag Modal Logic
     window.openTagModal = (id, tags) => {
         currentTaggingFileId = id;
-        customTagInput.value = tags;
-        tagModal.classList.remove('hidden');
+        if (customTagInput) customTagInput.value = tags;
+        if (tagModal) tagModal.classList.remove('hidden');
     };
 
     window.closeTagModal = () => {
@@ -781,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 currentTags.push(tag);
             }
-            customTagInput.value = currentTags.join(', ');
+            if (customTagInput) customTagInput.value = currentTags.join(', ');
         };
     });
 
@@ -809,16 +830,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Port Checker Logic
-    portCheckBtn.onclick = async () => {
-        const host = portHostInput.value.trim();
-        const port = portNumberInput.value.trim();
+    if (portCheckBtn) portCheckBtn.onclick = async () => {
+        const host = portHostInput ? portHostInput.value.trim() : '';
+        const port = portNumberInput ? portNumberInput.value.trim() : '';
         
         if (!host || !port) return;
         
         portCheckBtn.disabled = true;
         portCheckBtn.textContent = '...';
-        portResultDisplay.classList.remove('hidden');
-        portResultDisplay.textContent = 'Kontrol ediliyor...';
+        if (portResultDisplay) portResultDisplay.classList.remove('hidden');
+        if (portResultDisplay) portResultDisplay.textContent = 'Kontrol ediliyor...';
 
         try {
             const response = await fetch('api/tools.php?action=port_check', {
@@ -828,19 +849,49 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const result = await response.json();
             if (result.success) {
-                portResultDisplay.className = `mt-4 p-3 rounded-xl text-[10px] font-mono ${result.open ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`;
-                portResultDisplay.textContent = result.message;
+                if (portResultDisplay) portResultDisplay.className = `mt-4 p-3 rounded-xl text-[10px] font-mono ${result.open ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`;
+                if (portResultDisplay) portResultDisplay.textContent = result.message;
             } else {
-                portResultDisplay.className = 'mt-4 p-3 rounded-xl bg-red-50 text-red-600 text-[10px] font-mono';
-                portResultDisplay.textContent = result.message;
+                if (portResultDisplay) portResultDisplay.className = 'mt-4 p-3 rounded-xl bg-red-50 text-red-600 text-[10px] font-mono';
+                if (portResultDisplay) portResultDisplay.textContent = result.message;
             }
         } catch (error) {
-            portResultDisplay.textContent = 'Hata oluştu.';
+            if (portResultDisplay) portResultDisplay.textContent = 'Hata oluştu.';
         } finally {
             portCheckBtn.disabled = false;
             portCheckBtn.textContent = 'Kontrol Et';
         }
     };
+
+    // IP Info Logic
+    if (ipInfoBtn) {
+        ipInfoBtn.onclick = async () => {
+            const ip = ipInfoInput ? ipInfoInput.value.trim() : '';
+            if (!ip) return;
+            
+            ipInfoBtn.disabled = true;
+            if (ipInfoResult) ipInfoResult.classList.remove('hidden');
+            if (ipInfoResult) ipInfoResult.textContent = 'Sorgulanıyor...';
+
+            try {
+                const response = await fetch('api/tools.php?action=ip_info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    if (ipInfoResult) ipInfoResult.textContent = `Ülke: ${result.country}\nŞehir: ${result.city}\nISP: ${result.isp}\nAS: ${result.as}`;
+                } else {
+                    if (ipInfoResult) ipInfoResult.textContent = result.message || 'Hata oluştu.';
+                }
+            } catch (error) {
+                if (ipInfoResult) ipInfoResult.textContent = 'Hata oluştu.';
+            } finally {
+                ipInfoBtn.disabled = false;
+            }
+        };
+    }
 
     // Sorting Logic
     const dateHeader = document.querySelector('th:nth-child(3)'); // Date column
@@ -902,8 +953,8 @@ document.addEventListener('DOMContentLoaded', () => {
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
                 const percent = Math.round((e.loaded / e.total) * 100);
-                progressBar.style.width = percent + '%';
-                statusText.textContent = `%${percent} yüklendi...`;
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (statusText) statusText.textContent = `%${percent} yüklendi...`;
             }
         };
 
@@ -921,18 +972,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (xhr.status === 200 && result.success) {
-                statusText.textContent = 'Tamamlandı!';
-                statusText.className = 'text-xs font-bold status-text text-green-600';
-                progressBar.className = 'progress-bar bg-green-600 h-full transition-all duration-300';
-                progressBar.style.width = '100%';
+                if (statusText) statusText.textContent = 'Tamamlandı!';
+                if (statusText) statusText.className = 'text-xs font-bold status-text text-green-600';
+                if (progressBar) progressBar.className = 'progress-bar bg-green-600 h-full transition-all duration-300';
+                if (progressBar) progressBar.style.width = '100%';
                 showNotification(`${file.name} başarıyla yüklendi`);
                 
                 // Refresh list
                 setTimeout(loadFiles, 500);
             } else {
-                statusText.textContent = result.message || 'Hata oluştu!';
-                statusText.className = 'text-xs font-bold status-text text-red-600';
-                progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
+                if (statusText) statusText.textContent = result.message || 'Hata oluştu!';
+                if (statusText) statusText.className = 'text-xs font-bold status-text text-red-600';
+                if (progressBar) progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
                 showNotification(result.message || 'Yükleme hatası', 'error');
             }
 
@@ -944,9 +995,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         xhr.onerror = () => {
-            statusText.textContent = 'Bağlantı hatası!';
-            statusText.className = 'text-xs font-bold status-text text-red-600';
-            progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
+            if (statusText) statusText.textContent = 'Bağlantı hatası!';
+            if (statusText) statusText.className = 'text-xs font-bold status-text text-red-600';
+            if (progressBar) progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
             setTimeout(() => card.remove(), 4000);
         };
 
@@ -983,12 +1034,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // IT Tools Logic
-    pingBtn.onclick = async () => {
-        const ip = pingIpInput.value.trim();
+    if (pingBtn) pingBtn.onclick = async () => {
+        const ip = pingIpInput ? pingIpInput.value.trim() : '';
         if (!ip) return;
         
-        pingResult.classList.remove('hidden');
-        pingResult.textContent = 'Ping atılıyor...';
+        if (pingResult) pingResult.classList.remove('hidden');
+        if (pingResult) pingResult.textContent = 'Ping atılıyor...';
         pingBtn.disabled = true;
 
         try {
@@ -999,39 +1050,39 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const result = await response.json();
             if (result.success) {
-                pingResult.className = `mt-4 p-3 rounded-xl text-[10px] font-mono overflow-x-auto whitespace-pre ${result.online ? 'bg-green-50 dark:bg-green-900/10 text-green-600' : 'bg-red-50 dark:bg-red-900/10 text-red-600'}`;
-                pingResult.innerHTML = `<span class="font-black">[${result.online ? 'ONLINE' : 'OFFLINE'}]</span>\n${result.output}`;
+                if (pingResult) pingResult.className = `mt-4 p-3 rounded-xl text-[10px] font-mono overflow-x-auto whitespace-pre ${result.online ? 'bg-green-50 dark:bg-green-900/10 text-green-600' : 'bg-red-50 dark:bg-red-900/10 text-red-600'}`;
+                if (pingResult) pingResult.innerHTML = `<span class="font-black">[${result.online ? 'ONLINE' : 'OFFLINE'}]</span>\n${result.output}`;
             } else {
-                pingResult.textContent = result.message;
+                if (pingResult) pingResult.textContent = result.message;
             }
         } catch (error) {
-            pingResult.textContent = 'Hata oluştu.';
+            if (pingResult) pingResult.textContent = 'Hata oluştu.';
         } finally {
             pingBtn.disabled = false;
         }
     };
 
-    genPasswordBtn.onclick = async () => {
+    if (genPasswordBtn) genPasswordBtn.onclick = async () => {
         try {
             const response = await fetch('api/tools.php?action=password');
             const result = await response.json();
             if (result.success) {
-                genPasswordDisplay.textContent = result.password;
+                if (genPasswordDisplay) genPasswordDisplay.textContent = result.password;
                 showNotification('Şifre oluşturuldu');
             }
         } catch (error) {}
     };
 
-    b64EncodeBtn.onclick = () => {
+    if (b64EncodeBtn) b64EncodeBtn.onclick = () => {
         try {
-            b64Input.value = btoa(unescape(encodeURIComponent(b64Input.value)));
+            if (b64Input) b64Input.value = btoa(unescape(encodeURIComponent(b64Input.value)));
             showNotification('Base64 Encode edildi');
         } catch (e) { showNotification('Hata oluştu', 'error'); }
     };
 
-    b64DecodeBtn.onclick = () => {
+    if (b64DecodeBtn) b64DecodeBtn.onclick = () => {
         try {
-            b64Input.value = decodeURIComponent(escape(atob(b64Input.value)));
+            if (b64Input) b64Input.value = decodeURIComponent(escape(atob(b64Input.value)));
             showNotification('Base64 Decode edildi');
         } catch (e) { showNotification('Hata oluştu', 'error'); }
     };
@@ -1119,45 +1170,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Activity Logs
     const loadLogs = async () => {
+        if (!logTableBody) return;
+
         try {
             const response = await fetch('api/logs.php?action=list');
             const result = await response.json();
             if (result.success) {
                 if (result.logs.length === 0) {
-                    logsList.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="px-8 py-20 text-center text-gray-400 font-bold">
-                                <i data-lucide="activity" class="w-12 h-12 mb-4 opacity-20 mx-auto"></i>
-                                <p>Henüz sistem aktivitesi bulunmuyor.</p>
-                            </td>
-                        </tr>
-                    `;
+                    logTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-8 py-20 text-center text-gray-400 font-bold">
+                                    <i data-lucide="activity" class="w-12 h-12 mb-4 opacity-20 mx-auto"></i>
+                                    <p>Henüz sistem aktivitesi bulunmuyor.</p>
+                                </td>
+                            </tr>
+                        `;
                     lucide.createIcons();
                     return;
                 }
-                logsList.innerHTML = result.logs.map(log => `
-                    <tr class="hover:bg-gray-50/50 dark:hover:bg-dark-bg/50 transition-colors">
-                        <td class="px-8 py-4 font-bold text-gray-900 dark:text-gray-100">${log.username || 'Sistem'}</td>
-                        <td class="px-8 py-4"><span class="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-dark-bg text-[10px] font-black uppercase tracking-widest">${log.action}</span></td>
-                        <td class="px-8 py-4 text-gray-500 dark:text-gray-400">${log.details}</td>
-                        <td class="px-8 py-4 font-mono text-[10px] opacity-60">${log.ip_address}</td>
-                        <td class="px-8 py-4 opacity-40">${new Date(log.created_at).toLocaleString('tr-TR')}</td>
+
+                logTableBody.innerHTML = result.logs.map(log => `
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-8 py-4 whitespace-nowrap">${log.username || 'Sistem'}</td>
+                        <td class="px-8 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${log.action === 'DELETE' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}">${log.action}</span>
+                        </td>
+                        <td class="px-8 py-4 max-w-xs truncate" title="${log.details || ''}">${log.details || '-'}</td>
+                        <td class="px-8 py-4 whitespace-nowrap font-mono text-gray-400">${log.ip_address || '-'}</td>
+                        <td class="px-8 py-4 whitespace-nowrap text-gray-400">${timeAgo(log.created_at)}</td>
                     </tr>
                 `).join('');
+                lucide.createIcons();
             }
-        } catch (e) {
-            console.error('Logs load error:', e);
+        } catch (error) {
+            console.error('Logs load error:', error);
         }
     };
 
-    refreshLogsBtn.onclick = loadLogs;
-
-    // Real-time Health Updates (Every 30 seconds)
-    setInterval(() => {
-        if (user) loadConnectionInfo();
-    }, 30000);
-
-    // Initialize
     checkAuth();
-    initDarkMode();
+});
+window.addEventListener('load', () => {
+    console.log("Sayfa yüklendi, notlar manuel zorlanıyor...");
+    if(typeof loadNotes === 'function') loadNotes();
 });

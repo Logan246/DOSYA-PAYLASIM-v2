@@ -33,10 +33,15 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         content TEXT NOT NULL,
-        priority TEXT DEFAULT 'low',
+        priority TEXT DEFAULT 'normal',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
+
+    // Priority sütununun varlığını kontrol et ve yoksa ekle
+    try {
+        $pdo->exec("ALTER TABLE notes ADD COLUMN priority TEXT DEFAULT 'normal'");
+    } catch (PDOException $e) { /* Sütun zaten var olabilir, hatayı yoksay */ }
 
     // Create logs table
     $pdo->exec("CREATE TABLE IF NOT EXISTS logs (
@@ -56,6 +61,17 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
     )");
+
+    /**
+     * Sistem aktivitelerini loglamak için yardımcı fonksiyon
+     */
+    if (!function_exists('log_action')) {
+        function log_action($pdo, $user_id, $action, $details = '') {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$user_id, $action, $details, $ip]);
+        }
+    }
 
 } catch (PDOException $e) {
     die("Database error: " . $e->getMessage());

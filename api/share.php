@@ -1,5 +1,6 @@
 <?php
 error_reporting(0);
+header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth_helper.php';
 

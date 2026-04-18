@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $pdo->prepare("SELECT id, original_name, file_size, mime_type, tags, created_at FROM files WHERE user_id = ? ORDER BY created_at DESC");
         $stmt->execute([$user_id]);
         $files = $stmt->fetchAll();
-        echo json_encode(['success' => true, 'files' => $files]);
+        echo json_encode(['success' => true, 'files' => $files ?: []]);
         exit;
     }
 

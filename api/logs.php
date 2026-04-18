@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $pdo->prepare("SELECT logs.*, users.username FROM logs LEFT JOIN users ON logs.user_id = users.id ORDER BY logs.created_at DESC LIMIT 100");
         $stmt->execute();
         $logs = $stmt->fetchAll();
-        echo json_encode(['success' => true, 'logs' => $logs]);
+        echo json_encode(['success' => true, 'logs' => $logs ?: []]);
         exit;
     }
 }
