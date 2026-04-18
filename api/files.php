@@ -72,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ext = isset($path_parts['extension']) ? $path_parts['extension'] : '';
         $base_name = $path_parts['filename'];
 
+        // Extension Whitelist
+        $allowed_extensions = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'zip', 'rar', 'txt', 'bat', 'py'];
+        if (!in_array(strtolower($ext), $allowed_extensions)) {
+            echo json_encode(['success' => false, 'message' => "Güvenlik Engeli: .$ext uzantılı dosyalara izin verilmiyor. Sadece güvenli dosya türlerini yükleyebilirsiniz."]);
+            exit;
+        }
+
         // Clean filename and add unique ID (using uniqid for microsecond precision)
         $clean_name = slugify($base_name);
         $new_filename = uniqid() . '_' . $clean_name . ($ext ? '.' . $ext : '');
@@ -89,6 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO files (user_id, filename, original_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)");
             try {
                 $stmt->execute([$user_id, $new_filename, $original_name, 'uploads/' . $new_filename, $file_size, $mime_type]);
+                
+                // Log upload
+                require_once __DIR__ . '/logs.php';
+                log_action($pdo, $user_id, 'UPLOAD', "Dosya yüklendi: $original_name");
+                
                 echo json_encode(['success' => true, 'message' => 'File uploaded successfully']);
             } catch (PDOException $e) {
                 unlink($target_path);

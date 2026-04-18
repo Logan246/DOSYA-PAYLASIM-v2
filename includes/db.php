@@ -32,8 +32,19 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         content TEXT NOT NULL,
+        priority TEXT DEFAULT 'low',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )");
+
+    // Create logs table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action TEXT NOT NULL,
+        details TEXT,
+        ip_address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
 } catch (PDOException $e) {

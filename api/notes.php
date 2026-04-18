@@ -14,14 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'add') {
         $content = trim($input['content'] ?? '');
+        $priority = $input['priority'] ?? 'low';
+        
         if (empty($content)) {
             echo json_encode(['success' => false, 'message' => 'Not içeriği boş olamaz.']);
             exit;
         }
 
-        $stmt = $pdo->prepare("INSERT INTO notes (user_id, content) VALUES (?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO notes (user_id, content, priority) VALUES (?, ?, ?)");
         try {
-            $stmt->execute([$user_id, $content]);
+            $stmt->execute([$user_id, $content, $priority]);
             echo json_encode(['success' => true, 'message' => 'Not kaydedildi.']);
         } catch (PDOException $e) {
             echo json_encode(['success' => false, 'message' => 'Veritabanı hatası.']);
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($action === 'list') {
-        $stmt = $pdo->prepare("SELECT id, content, created_at FROM notes WHERE user_id = ? ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("SELECT id, content, priority, created_at FROM notes WHERE user_id = ? ORDER BY created_at DESC");
         $stmt->execute([$user_id]);
         $notes = $stmt->fetchAll();
         echo json_encode(['success' => true, 'notes' => $notes]);

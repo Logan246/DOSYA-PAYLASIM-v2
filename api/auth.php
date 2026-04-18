@@ -45,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && password_verify($password, $user['password'])) {
             login_user($user['id'], $user['username']);
+            
+            // Log login
+            require_once __DIR__ . '/logs.php';
+            log_action($pdo, $user['id'], 'LOGIN', 'Kullanıcı giriş yaptı');
+            
             echo json_encode(['success' => true, 'message' => 'Login successful', 'username' => $user['username']]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid username or password']);

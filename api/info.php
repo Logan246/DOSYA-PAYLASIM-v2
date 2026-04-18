@@ -9,5 +9,8 @@ echo json_encode([
     'success' => true,
     'ip' => $_SERVER['REMOTE_ADDR'],
     'user_agent' => $_SERVER['HTTP_USER_AGENT'],
-    'server_time' => date('Y-m-d H:i:s')
+    'server_time' => date('Y-m-d H:i:s'),
+    'os' => PHP_OS,
+    'php_version' => PHP_VERSION,
+    'server_software' => $_SERVER['SERVER_SOFTWARE']
 ]);
