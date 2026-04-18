@@ -24,11 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewGridBtn = document.getElementById('view-grid');
     const listViewContainer = document.getElementById('list-view-container');
     const gridViewContainer = document.getElementById('grid-view-container');
+    const noteInput = document.getElementById('note-input');
+    const saveNoteBtn = document.getElementById('save-note-btn');
+    const notesContainer = document.getElementById('notes-container');
 
     // State
     let user = null;
     let files = [];
     let filteredFiles = [];
+    let notes = [];
     let currentView = 'list'; // 'list' or 'grid'
 
     // Helper: Get FontAwesome Icon and Color for Mime Type
@@ -116,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUsername.textContent = user.username;
         userAvatar.textContent = user.username.charAt(0).toUpperCase();
         loadFiles();
+        loadNotes();
         lucide.createIcons();
     };
 
@@ -339,6 +344,83 @@ document.addEventListener('DOMContentLoaded', () => {
             (file.mime_type && file.mime_type.toLowerCase().includes(query))
         );
         renderFiles();
+    };
+
+    // Note Logic
+    const loadNotes = async () => {
+        try {
+            const response = await fetch('api/notes.php?action=list');
+            const result = await response.json();
+            if (result.success) {
+                notes = result.notes;
+                renderNotes();
+            }
+        } catch (error) {
+            console.error('Notes load error:', error);
+        }
+    };
+
+    const renderNotes = () => {
+        notesContainer.innerHTML = '';
+        if (notes.length === 0) {
+            notesContainer.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Henüz not yok.</p>';
+            return;
+        }
+
+        notes.forEach(note => {
+            const div = document.createElement('div');
+            div.className = 'bg-yellow-50 p-4 rounded-xl border border-yellow-100 shadow-sm relative group';
+            div.innerHTML = `
+                <p class="text-sm text-gray-700 whitespace-pre-wrap break-words pr-6">${note.content}</p>
+                <p class="text-[10px] text-yellow-600/60 mt-2">${new Date(note.created_at).toLocaleString('tr-TR')}</p>
+                <button onclick="deleteNote(${note.id})" class="absolute top-2 right-2 text-yellow-600/40 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            notesContainer.appendChild(div);
+        });
+        lucide.createIcons();
+    };
+
+    saveNoteBtn.onclick = async () => {
+        const content = noteInput.value.trim();
+        if (!content) return;
+
+        try {
+            const response = await fetch('api/notes.php?action=add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            const result = await response.json();
+            if (result.success) {
+                noteInput.value = '';
+                loadNotes();
+                showNotification('Not kaydedildi');
+            } else {
+                showNotification(result.message, 'error');
+            }
+        } catch (error) {
+            showNotification('Not kaydetme hatası', 'error');
+        }
+    };
+
+    window.deleteNote = async (id) => {
+        if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
+        try {
+            const response = await fetch('api/notes.php?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await response.json();
+            if (result.success) {
+                loadNotes();
+                showNotification('Not silindi');
+            }
+        } catch (error) {
+            showNotification('Not silme hatası', 'error');
+        }
     };
 
     window.deleteFile = async (id) => {
