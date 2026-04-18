@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteInput = document.getElementById('note-input');
     const saveNoteBtn = document.getElementById('save-note-btn');
     const notesContainer = document.getElementById('notes-container');
+    const infoIp = document.getElementById('info-ip');
+    const infoUa = document.getElementById('info-ua');
 
     // State
     let user = null;
@@ -121,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatar.textContent = user.username.charAt(0).toUpperCase();
         loadFiles();
         loadNotes();
+        loadConnectionInfo();
         lucide.createIcons();
     };
 
@@ -253,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center ${fa.color} group-hover:bg-blue-50 transition-colors overflow-hidden border border-gray-100">
-                            ${isImg ? `<img src="api/files.php?action=download&id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-lg"></i>`}
+                            ${isImg ? `<img src="api/download.php?id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-lg"></i>`}
                         </div>
                         <div>
                             <span class="text-sm font-semibold text-gray-900 block truncate max-w-xs" title="${file.original_name}">${file.original_name}</span>
@@ -274,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a href="api/files.php?action=download&id=${file.id}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
+                        <a href="api/download.php?id=${file.id}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
                             <i data-lucide="download" class="w-4 h-4"></i>
                         </a>
                         <button onclick="deleteFile(${file.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
@@ -296,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.innerHTML = `
                 <div class="aspect-square bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-50 relative">
-                    ${isImg ? `<img src="api/files.php?action=download&id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-4xl ${fa.color}"></i>`}
+                    ${isImg ? `<img src="api/download.php?id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-4xl ${fa.color}"></i>`}
                     <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -308,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${(file.mime_type || 'Other').split('/')[0]}
                     </span>
                     <div class="flex gap-1">
-                        <a href="api/files.php?action=download&id=${file.id}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
+                        <a href="api/download.php?id=${file.id}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
                             <i data-lucide="download" class="w-4 h-4"></i>
                         </a>
                         <button onclick="deleteFile(${file.id})" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
@@ -344,6 +347,22 @@ document.addEventListener('DOMContentLoaded', () => {
             (file.mime_type && file.mime_type.toLowerCase().includes(query))
         );
         renderFiles();
+    };
+
+    // Connection Info Logic
+    const loadConnectionInfo = async () => {
+        try {
+            const response = await fetch('api/info.php');
+            const result = await response.json();
+            if (result.success) {
+                infoIp.textContent = result.ip;
+                infoUa.textContent = result.user_agent;
+            }
+        } catch (error) {
+            console.error('Info load error:', error);
+            infoIp.textContent = 'Hata';
+            infoUa.textContent = 'Bilgi alınamadı';
+        }
     };
 
     // Note Logic
