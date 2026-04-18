@@ -6,6 +6,7 @@
     <title>Personal Cloud - Dosya Paylaşımı</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .sidebar-item:hover {
             background-color: #f3f4f6;
@@ -173,13 +174,16 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                         <h3 class="font-bold text-gray-800">Dosya Listesi</h3>
-                        <div class="flex gap-2">
-                            <button class="p-2 hover:bg-gray-50 rounded-lg text-gray-400" title="Görünümü Değiştir">
-                                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                        <div class="flex bg-gray-100 p-1 rounded-lg">
+                            <button id="view-list" class="p-2 rounded-md transition-all text-blue-600 bg-white shadow-sm" title="Liste Görünümü">
+                                <i data-lucide="list" class="w-4 h-4"></i>
+                            </button>
+                            <button id="view-grid" class="p-2 rounded-md transition-all text-gray-400 hover:text-gray-600" title="Grid Görünümü">
+                                <i data-lucide="layout-grid" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div id="list-view-container" class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-100">
                             <thead>
                                 <tr class="bg-gray-50/50">
@@ -194,6 +198,9 @@
                                 <!-- Files will be injected here -->
                             </tbody>
                         </table>
+                    </div>
+                    <div id="grid-view-container" class="hidden p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        <!-- Grid items will be injected here -->
                     </div>
                     <div id="empty-state" class="hidden py-20 flex flex-col items-center justify-center text-gray-400">
                         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">

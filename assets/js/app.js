@@ -20,13 +20,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalFilesCount = document.getElementById('total-files-count');
     const totalStorageSize = document.getElementById('total-storage-size');
     const lastUploadDate = document.getElementById('last-upload-date');
+    const viewListBtn = document.getElementById('view-list');
+    const viewGridBtn = document.getElementById('view-grid');
+    const listViewContainer = document.getElementById('list-view-container');
+    const gridViewContainer = document.getElementById('grid-view-container');
 
     // State
     let user = null;
     let files = [];
     let filteredFiles = [];
+    let currentView = 'list'; // 'list' or 'grid'
 
-    // Helper: Get Icon for Mime Type
+    // Helper: Get FontAwesome Icon and Color for Mime Type
+    const getFileFAIcon = (mimeType, originalName) => {
+        const ext = originalName.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return { icon: 'fa-file-image', color: 'text-blue-500' };
+        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: 'text-red-500' };
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'fa-file-archive', color: 'text-yellow-500' };
+        if (['doc', 'docx'].includes(ext)) return { icon: 'fa-file-word', color: 'text-blue-600' };
+        if (['xls', 'xlsx', 'csv'].includes(ext)) return { icon: 'fa-file-excel', color: 'text-green-600' };
+        if (['ppt', 'pptx'].includes(ext)) return { icon: 'fa-file-powerpoint', color: 'text-orange-500' };
+        if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return { icon: 'fa-file-video', color: 'text-purple-500' };
+        if (['mp3', 'wav', 'ogg'].includes(ext)) return { icon: 'fa-file-audio', color: 'text-pink-500' };
+        if (['txt', 'md', 'rtf'].includes(ext)) return { icon: 'fa-file-lines', color: 'text-gray-500' };
+        if (['html', 'css', 'js', 'php', 'py', 'json'].includes(ext)) return { icon: 'fa-file-code', color: 'text-indigo-500' };
+        return { icon: 'fa-file', color: 'text-gray-400' };
+    };
+
+    // Helper: Is Image
+    const isImage = (mimeType, originalName) => {
+        const ext = originalName.split('.').pop().toLowerCase();
+        return (mimeType && mimeType.startsWith('image/')) || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    };
+
+    // Helper: Get Icon for Mime Type (Lucide fallback)
     const getFileIcon = (mimeType) => {
         if (!mimeType) return 'file';
         if (mimeType.startsWith('image/')) return 'file-image';
@@ -188,51 +215,120 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderFiles = () => {
         filesList.innerHTML = '';
+        gridViewContainer.innerHTML = '';
+
         if (filteredFiles.length === 0) {
             emptyState.classList.remove('hidden');
+            listViewContainer.classList.add('hidden');
+            gridViewContainer.classList.add('hidden');
         } else {
             emptyState.classList.add('hidden');
-            filteredFiles.forEach(file => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50/50 transition-colors group';
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-blue-500 group-hover:bg-blue-50 transition-colors">
-                                <i data-lucide="${getFileIcon(file.mime_type)}" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <span class="text-sm font-semibold text-gray-900 block truncate max-w-xs" title="${file.original_name}">${file.original_name}</span>
-                                <span class="text-xs text-gray-400">${file.mime_type || 'Bilinmeyen Tür'}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                        ${formatBytes(file.file_size)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            ${(file.mime_type || 'Other').split('/')[0]}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${new Date(file.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a href="api/files.php?action=download&id=${file.id}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
-                                <i data-lucide="download" class="w-4 h-4"></i>
-                            </a>
-                            <button onclick="deleteFile(${file.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                filesList.appendChild(tr);
-            });
+            
+            if (currentView === 'list') {
+                listViewContainer.classList.remove('hidden');
+                gridViewContainer.classList.add('hidden');
+                renderListView();
+            } else {
+                listViewContainer.classList.add('hidden');
+                gridViewContainer.classList.remove('hidden');
+                renderGridView();
+            }
             lucide.createIcons();
         }
+    };
+
+    const renderListView = () => {
+        filteredFiles.forEach(file => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50/50 transition-colors group';
+            const fa = getFileFAIcon(file.mime_type, file.original_name);
+            const isImg = isImage(file.mime_type, file.original_name);
+            
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center ${fa.color} group-hover:bg-blue-50 transition-colors overflow-hidden border border-gray-100">
+                            ${isImg ? `<img src="api/files.php?action=download&id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-lg"></i>`}
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-900 block truncate max-w-xs" title="${file.original_name}">${file.original_name}</span>
+                            <span class="text-xs text-gray-400">${file.mime_type || 'Bilinmeyen Tür'}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
+                    ${formatBytes(file.file_size)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        ${(file.mime_type || 'Other').split('/')[0]}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${new Date(file.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <a href="api/files.php?action=download&id=${file.id}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </a>
+                        <button onclick="deleteFile(${file.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            filesList.appendChild(tr);
+        });
+    };
+
+    const renderGridView = () => {
+        filteredFiles.forEach(file => {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group flex flex-col gap-3';
+            const fa = getFileFAIcon(file.mime_type, file.original_name);
+            const isImg = isImage(file.mime_type, file.original_name);
+
+            card.innerHTML = `
+                <div class="aspect-square bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-50 relative">
+                    ${isImg ? `<img src="api/files.php?action=download&id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-4xl ${fa.color}"></i>`}
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate" title="${file.original_name}">${file.original_name}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">${formatBytes(file.file_size)} • ${new Date(file.created_at).toLocaleDateString('tr-TR')}</p>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-gray-50">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        ${(file.mime_type || 'Other').split('/')[0]}
+                    </span>
+                    <div class="flex gap-1">
+                        <a href="api/files.php?action=download&id=${file.id}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </a>
+                        <button onclick="deleteFile(${file.id})" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            gridViewContainer.appendChild(card);
+        });
+    };
+
+    // View Switching logic
+    viewListBtn.onclick = () => {
+        currentView = 'list';
+        viewListBtn.className = 'p-2 rounded-md transition-all text-blue-600 bg-white shadow-sm';
+        viewGridBtn.className = 'p-2 rounded-md transition-all text-gray-400 hover:text-gray-600';
+        renderFiles();
+    };
+
+    viewGridBtn.onclick = () => {
+        currentView = 'grid';
+        viewGridBtn.className = 'p-2 rounded-md transition-all text-blue-600 bg-white shadow-sm';
+        viewListBtn.className = 'p-2 rounded-md transition-all text-gray-400 hover:text-gray-600';
+        renderFiles();
     };
 
     // Search logic
