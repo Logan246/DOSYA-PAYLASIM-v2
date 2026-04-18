@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const totalFilesCount = document.getElementById('total-files-count');
     const totalStorageSize = document.getElementById('total-storage-size');
-    const lastUploadDate = document.getElementById('last-upload-date');
+    const lastUploadName = document.getElementById('last-upload-name');
+    const lastUploadTime = document.getElementById('last-upload-time');
     const viewListBtn = document.getElementById('view-list');
     const viewGridBtn = document.getElementById('view-grid');
     const listViewContainer = document.getElementById('list-view-container');
@@ -91,6 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    };
+
+    // Helper: Time Ago
+    const timeAgo = (date) => {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " yıl önce";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " ay önce";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " gün önce";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " saat önce";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " dk önce";
+        return "az önce";
     };
 
     // Auth Logic
@@ -214,10 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalSize = files.reduce((acc, file) => acc + file.file_size, 0);
         totalStorageSize.textContent = formatBytes(totalSize);
         if (files.length > 0) {
-            const lastDate = new Date(files[0].created_at);
-            lastUploadDate.textContent = lastDate.toLocaleDateString('tr-TR');
+            const lastFile = files[0]; // List is ordered by created_at DESC
+            lastUploadName.textContent = lastFile.original_name;
+            lastUploadTime.textContent = timeAgo(lastFile.created_at);
         } else {
-            lastUploadDate.textContent = '-';
+            lastUploadName.textContent = '-';
+            lastUploadTime.textContent = 'Henüz dosya yok';
         }
     };
 
