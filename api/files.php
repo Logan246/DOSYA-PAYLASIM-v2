@@ -68,12 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mime_type = $file['type'];
         $temp_path = $file['tmp_name'];
 
-        // Extra check for empty files
-        if ($file_size === 0 && $file['error'] === UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Boş dosya yükleyemezsiniz.']);
-            exit;
-        }
-
         $path_parts = pathinfo($original_name);
         $ext = isset($path_parts['extension']) ? $path_parts['extension'] : '';
         $base_name = $path_parts['filename'];
