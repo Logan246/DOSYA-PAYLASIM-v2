@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderFiles();
     };
 
-    // Connection Info Logic
+    // Connection Info (Floating/Bottom)
     const loadConnectionInfo = async () => {
         try {
             const response = await fetch('api/info.php');
@@ -434,6 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 serverOsDisplay.textContent = `OS: ${result.os}`;
                 phpVersionDisplay.textContent = `PHP: ${result.php_version}`;
                 serverTimeDisplay.textContent = result.server_time;
+
+                const floatingIp = document.querySelector('.fixed.bottom-6 #info-ip');
+                if (floatingIp) floatingIp.textContent = result.ip;
             }
         } catch (error) {
             console.error('Info load error:', error);
@@ -441,10 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
             infoUa.textContent = 'Bilgi alınamadı';
         }
     };
-
-    // Connection Info (Floating/Bottom)
-    const floatingIp = document.querySelector('.fixed.bottom-6 #info-ip');
-    if (floatingIp) floatingIp.textContent = result.ip;
     const loadNotes = async () => {
         try {
             const response = await fetch('api/notes.php?action=list');
@@ -612,35 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.dataTransfer.files.length > 0) {
             uploadFile(e.dataTransfer.files[0]);
         }
-    };
-
-    // Activity Logs
-    const loadLogs = async () => {
-        try {
-            const response = await fetch('api/logs.php?action=list');
-            const result = await response.json();
-            if (result.success) {
-                renderLogs(result.logs);
-            }
-        } catch (error) {
-            console.error('Logs load error:', error);
-        }
-    };
-
-    const renderLogs = (logs) => {
-        logsList.innerHTML = '';
-        logs.forEach(log => {
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-gray-50/50 dark:hover:bg-dark-bg/50 transition-colors';
-            tr.innerHTML = `
-                <td class="px-8 py-4 font-bold text-blue-600">${log.username || 'Sistem'}</td>
-                <td class="px-8 py-4"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-dark-bg text-[10px] font-black">${log.action}</span></td>
-                <td class="px-8 py-4 text-gray-500">${log.details}</td>
-                <td class="px-8 py-4 font-mono text-[10px]">${log.ip_address}</td>
-                <td class="px-8 py-4 text-gray-400">${new Date(log.created_at).toLocaleString('tr-TR')}</td>
-            `;
-            logsList.appendChild(tr);
-        });
     };
 
     // IT Tools Logic
