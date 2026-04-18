@@ -93,9 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            $stmt = $pdo->prepare("INSERT INTO files (user_id, filename, original_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO files (user_id, filename, original_name, file_path, file_size, mime_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
             try {
-                $stmt->execute([$user_id, $new_filename, $original_name, 'uploads/' . $new_filename, $file_size, $mime_type]);
+                $stmt->execute([$user_id, $new_filename, $original_name, 'uploads/' . $new_filename, $file_size, $mime_type, date('Y-m-d H:i:s')]);
                 
                 // Log upload
                 log_action($pdo, $user_id, 'UPLOAD', "Dosya yüklendi: $original_name");
@@ -137,14 +137,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         exit;
     }
+
+    if ($action === 'update_tags') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $file_id = $input['id'] ?? null;
+        $tags = trim($input['tags'] ?? '');
+
+        if (!$file_id) {
+            echo json_encode(['success' => false, 'message' => 'File ID required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("UPDATE files SET tags = ? WHERE id = ? AND user_id = ?");
+        $stmt->execute([$tags, $file_id, $user_id]);
+        echo json_encode(['success' => true, 'message' => 'Etiketler güncellendi']);
+        exit;
+    }
+
+    if ($action === 'save_content') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $file_id = $input['id'] ?? null;
+        $content = $input['content'] ?? '';
+
+        if (!$file_id) {
+            echo json_encode(['success' => false, 'message' => 'File ID required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT filename, original_name FROM files WHERE id = ? AND user_id = ?");
+        $stmt->execute([$file_id, $user_id]);
+        $file = $stmt->fetch();
+
+        if ($file) {
+            $ext = strtolower(pathinfo($file['original_name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['txt', 'bat', 'py'])) {
+                echo json_encode(['success' => false, 'message' => 'Bu dosya türü düzenlenemez.']);
+                exit;
+            }
+
+            $target_path = __DIR__ . '/../uploads/' . $file['filename'];
+            if (file_put_contents($target_path, $content) !== false) {
+                log_action($pdo, $user_id, 'EDIT', "Dosya düzenlendi: " . $file['original_name']);
+                echo json_encode(['success' => true, 'message' => 'Dosya kaydedildi']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Dosya yazılamadı']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Dosya bulunamadı']);
+        }
+        exit;
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($action === 'list') {
-        $stmt = $pdo->prepare("SELECT id, original_name, file_size, mime_type, created_at FROM files WHERE user_id = ? ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("SELECT id, original_name, file_size, mime_type, tags, created_at FROM files WHERE user_id = ? ORDER BY created_at DESC");
         $stmt->execute([$user_id]);
         $files = $stmt->fetchAll();
         echo json_encode(['success' => true, 'files' => $files]);
+        exit;
+    }
+
+    if ($action === 'get_content') {
+        $file_id = $_GET['id'] ?? null;
+        if (!$file_id) {
+            echo json_encode(['success' => false, 'message' => 'File ID required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT filename, original_name FROM files WHERE id = ? AND user_id = ?");
+        $stmt->execute([$file_id, $user_id]);
+        $file = $stmt->fetch();
+
+        if ($file) {
+            $ext = strtolower(pathinfo($file['original_name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['txt', 'bat', 'py'])) {
+                echo json_encode(['success' => false, 'message' => 'Bu dosya türü okunamaz.']);
+                exit;
+            }
+
+            $target_path = __DIR__ . '/../uploads/' . $file['filename'];
+            if (file_exists($target_path)) {
+                $content = file_get_contents($target_path);
+                echo json_encode(['success' => true, 'content' => $content]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Dosya bulunamadı']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erişim engellendi']);
+        }
         exit;
     }
 

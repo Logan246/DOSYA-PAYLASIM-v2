@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Europe/Istanbul');
 
 function is_logged_in() {
     return isset($_SESSION['user_id']);
@@ -28,6 +29,7 @@ function logout_user() {
 
 function log_action($pdo, $user_id, $action, $details = '') {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$user_id, $action, $details, $ip]);
+    $now = date('Y-m-d H:i:s');
+    $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$user_id, $action, $details, $ip, $now]);
 }

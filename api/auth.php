@@ -25,9 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)");
         try {
-            $stmt->execute([$username, $hashed_password]);
+            $stmt->execute([$username, $hashed_password, date('Y-m-d H:i:s')]);
             echo json_encode(['success' => true, 'message' => 'User registered successfully']);
         } catch (PDOException $e) {
             echo json_encode(['success' => false, 'message' => 'Registration failed']);

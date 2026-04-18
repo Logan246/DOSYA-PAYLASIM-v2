@@ -171,7 +171,8 @@
             <div class="flex-1 overflow-y-auto p-4 lg:p-8">
                 
                 <!-- TAB: Dashboard -->
-                <div id="tab-dashboard" class="tab-content space-y-8">
+                <div id="tab-dashboard" class="tab-content flex flex-col lg:flex-row gap-8">
+                <div class="flex-1 space-y-8">
                     <!-- Stats Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                         <div class="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-4">
@@ -235,6 +236,44 @@
                             <p class="font-bold">Dosya Bulunmuyor</p>
                         </div>
                     </div>
+
+                    <!-- Right Panel: Notes, Tools & Health -->
+                    <div class="w-full lg:w-80 flex flex-col gap-6">
+                        <!-- System Health Panel -->
+                        <div class="bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-dark-border p-6 shadow-sm">
+                            <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                <i data-lucide="heart-pulse" class="w-4 h-4 text-red-500"></i>
+                                Sistem Sağlığı
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-[10px] font-bold mb-1 opacity-60 uppercase">
+                                        <span>Disk Kullanımı (C:)</span>
+                                        <span id="disk-usage-pct">0%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 dark:bg-dark-bg rounded-full h-1.5 overflow-hidden">
+                                        <div id="disk-progress" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+                                    </div>
+                                    <p class="text-[9px] mt-1 text-gray-400 font-medium" id="disk-info">Yükleniyor...</p>
+                                </div>
+                                <div class="pt-2 border-t border-gray-50 dark:border-dark-border">
+                                    <p class="text-[10px] font-bold opacity-60 uppercase mb-1">Uptime</p>
+                                    <p id="system-uptime" class="text-xs font-mono font-bold text-blue-600">...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-6">
+                            <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                <i data-lucide="sticky-note" class="w-4 h-4 text-yellow-500"></i>
+                                Hızlı Notlar
+                            </h3>
+                            <div id="dashboard-notes-mini" class="space-y-3">
+                                <!-- Mini notes will be populated here -->
+                                <p class="text-xs text-gray-400 italic">Not bulunmuyor...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- TAB: Notes -->
@@ -288,6 +327,17 @@
                                 <button id="b64-decode" class="flex-1 py-2 border border-purple-600 text-purple-600 rounded-xl text-xs font-bold">Decode</button>
                             </div>
                         </div>
+
+                        <!-- Port Checker Tool -->
+                        <div class="bg-white dark:bg-dark-card p-6 rounded-3xl border border-gray-100 dark:border-dark-border shadow-sm">
+                            <div class="flex items-center gap-3 mb-4 text-orange-600"><i data-lucide="network" class="w-5 h-5"></i><h3 class="font-bold uppercase tracking-wider text-xs">Port Checker</h3></div>
+                            <div class="space-y-3">
+                                <input type="text" id="port-host" placeholder="Örn: 192.168.1.1 veya google.com" class="w-full px-4 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500">
+                                <input type="number" id="port-number" placeholder="Port: 80, 443, 3389..." class="w-full px-4 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500">
+                                <button id="port-check-btn" class="w-full py-2 bg-orange-600 text-white rounded-xl text-sm font-bold">Kontrol Et</button>
+                            </div>
+                            <div id="port-result" class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-dark-bg text-[10px] font-mono hidden"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -331,6 +381,56 @@
     <div id="toast" class="fixed top-6 right-6 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl transform translate-x-[150%] transition-transform duration-500 z-[100] flex items-center gap-3">
         <i data-lucide="info" class="w-5 h-5 text-blue-400"></i>
         <span class="text-sm font-bold">Mesaj</span>
+    </div>
+
+    <!-- Upload Status Container -->
+    <div id="upload-status-container" class="fixed bottom-6 left-6 z-[110] flex flex-col gap-3 max-w-xs w-full"></div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/50 z-[150] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-dark-card w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-dark-border flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="file-edit" class="w-5 h-5 text-blue-600"></i>
+                    <h3 class="font-bold truncate" id="edit-filename">Dosya Düzenle</h3>
+                </div>
+                <button onclick="closeEditModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="flex-1 p-6 overflow-hidden">
+                <textarea id="edit-content" class="w-full h-full p-4 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-2xl font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-dark-border flex justify-end gap-3">
+                <button onclick="closeEditModal()" class="px-6 py-2 text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all">İptal</button>
+                <button id="save-edit-btn" class="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-none hover:bg-blue-700 transition-all">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tag Modal -->
+    <div id="tag-modal" class="fixed inset-0 bg-black/50 z-[150] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-dark-card w-full max-w-sm rounded-3xl shadow-2xl border border-gray-100 dark:border-dark-border p-8">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="tag" class="w-5 h-5 text-purple-600"></i>
+                Etiket Düzenle
+            </h3>
+            <div class="space-y-4">
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Popüler Etiketler</p>
+                <div class="flex flex-wrap gap-2" id="popular-tags">
+                    <button class="tag-chip px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest border border-red-100" data-tag="Acil">Acil</button>
+                    <button class="tag-chip px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-100" data-tag="Yedek">Yedek</button>
+                    <button class="tag-chip px-3 py-1.5 rounded-lg bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest border border-green-100" data-tag="Rapor">Rapor</button>
+                    <button class="tag-chip px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 text-[10px] font-black uppercase tracking-widest border border-purple-100" data-tag="Script">Script</button>
+                </div>
+                <div class="pt-4">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Özel Etiket</label>
+                    <input type="text" id="custom-tag-input" placeholder="Virgülle ayırın..." class="w-full px-4 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div class="pt-6 flex gap-3">
+                    <button onclick="closeTagModal()" class="flex-1 py-2 text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all">İptal</button>
+                    <button id="save-tags-btn" class="flex-1 py-2 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-200 dark:shadow-none hover:bg-purple-700 transition-all">Kaydet</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="assets/js/app.js"></script>

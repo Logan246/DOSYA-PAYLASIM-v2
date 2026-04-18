@@ -23,6 +23,7 @@ try {
         file_path TEXT NOT NULL,
         file_size INTEGER NOT NULL,
         mime_type TEXT,
+        tags TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
@@ -45,6 +46,15 @@ try {
         details TEXT,
         ip_address TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // Create shares table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS shares (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_id INTEGER NOT NULL,
+        share_token TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
     )");
 
 } catch (PDOException $e) {

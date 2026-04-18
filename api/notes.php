@@ -21,9 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $stmt = $pdo->prepare("INSERT INTO notes (user_id, content, priority) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO notes (user_id, content, priority, created_at) VALUES (?, ?, ?, ?)");
         try {
-            $stmt->execute([$user_id, $content, $priority]);
+            $stmt->execute([$user_id, $content, $priority, date('Y-m-d H:i:s')]);
             echo json_encode(['success' => true, 'message' => 'Not kaydedildi.']);
         } catch (PDOException $e) {
             echo json_encode(['success' => false, 'message' => 'Veritabanı hatası.']);

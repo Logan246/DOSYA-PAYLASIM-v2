@@ -44,4 +44,32 @@ if ($action === 'password') {
     exit;
 }
 
+if ($action === 'port_check') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $host = $input['host'] ?? '';
+    $port = (int)($input['port'] ?? 0);
+
+    if (empty($host) || $port <= 0 || $port > 65535) {
+        echo json_encode(['success' => false, 'message' => 'Geçersiz host veya port.']);
+        exit;
+    }
+
+    $connection = @fsockopen($host, $port, $errno, $errstr, 2);
+    $is_open = is_resource($connection);
+    if ($is_open) {
+        fclose($connection);
+    }
+
+    // Log tool usage
+    require_once __DIR__ . '/../includes/db.php';
+    log_action($pdo, get_user_id(), 'TOOL_PORTCHECK', "Host: $host, Port: $port, Sonuç: " . ($is_open ? 'Açık' : 'Kapalı'));
+
+    echo json_encode([
+        'success' => true,
+        'open' => $is_open,
+        'message' => $is_open ? "Port $port açık." : "Port $port kapalı veya ulaşılamıyor."
+    ]);
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Geçersiz işlem.']);
