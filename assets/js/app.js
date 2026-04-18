@@ -16,10 +16,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
     const dropZone = document.getElementById('drop-zone');
     const toast = document.getElementById('toast');
+    const searchInput = document.getElementById('search-input');
+    const totalFilesCount = document.getElementById('total-files-count');
+    const totalStorageSize = document.getElementById('total-storage-size');
+    const lastUploadDate = document.getElementById('last-upload-date');
 
     // State
     let user = null;
     let files = [];
+    let filteredFiles = [];
+
+    // Helper: Get Icon for Mime Type
+    const getFileIcon = (mimeType) => {
+        if (!mimeType) return 'file';
+        if (mimeType.startsWith('image/')) return 'file-image';
+        if (mimeType.startsWith('video/')) return 'file-video';
+        if (mimeType.startsWith('audio/')) return 'file-audio';
+        if (mimeType.includes('pdf')) return 'file-text';
+        if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return 'file-archive';
+        if (mimeType.includes('word') || mimeType.includes('officedocument.wordprocessingml')) return 'file-text';
+        if (mimeType.includes('excel') || mimeType.includes('officedocument.spreadsheetml')) return 'file-spreadsheet';
+        if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'presentation';
+        return 'file';
+    };
 
     // Helper: Show Notification
     const showNotification = (message, type = 'success') => {
@@ -146,6 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (result.success) {
                 files = result.files;
+                filteredFiles = files;
+                updateStats();
                 renderFiles();
             }
         } catch (error) {
@@ -153,36 +174,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const updateStats = () => {
+        totalFilesCount.textContent = files.length;
+        const totalSize = files.reduce((acc, file) => acc + file.file_size, 0);
+        totalStorageSize.textContent = formatBytes(totalSize);
+        if (files.length > 0) {
+            const lastDate = new Date(files[0].created_at);
+            lastUploadDate.textContent = lastDate.toLocaleDateString('tr-TR');
+        } else {
+            lastUploadDate.textContent = '-';
+        }
+    };
+
     const renderFiles = () => {
         filesList.innerHTML = '';
-        if (files.length === 0) {
+        if (filteredFiles.length === 0) {
             emptyState.classList.remove('hidden');
         } else {
             emptyState.classList.add('hidden');
-            files.forEach(file => {
+            filteredFiles.forEach(file => {
                 const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50/50 transition-colors group';
                 tr.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
-                            <i data-lucide="file" class="w-5 h-5 text-blue-400"></i>
-                            <span class="text-sm font-medium text-gray-900">${file.original_name}</span>
+                            <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-blue-500 group-hover:bg-blue-50 transition-colors">
+                                <i data-lucide="${getFileIcon(file.mime_type)}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-semibold text-gray-900 block truncate max-w-xs" title="${file.original_name}">${file.original_name}</span>
+                                <span class="text-xs text-gray-400">${file.mime_type || 'Bilinmeyen Tür'}</span>
+                            </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
                         ${formatBytes(file.file_size)}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${file.mime_type || 'Unknown'}
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            ${(file.mime_type || 'Other').split('/')[0]}
+                        </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${new Date(file.created_at).toLocaleDateString('tr-TR')}
+                        ${new Date(file.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex items-center justify-end gap-3">
-                            <a href="api/files.php?action=download&id=${file.id}" class="text-blue-600 hover:text-blue-900" title="İndir">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="api/files.php?action=download&id=${file.id}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="İndir">
                                 <i data-lucide="download" class="w-4 h-4"></i>
                             </a>
-                            <button onclick="deleteFile(${file.id})" class="text-red-600 hover:text-red-900" title="Sil">
+                            <button onclick="deleteFile(${file.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
@@ -192,6 +233,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             lucide.createIcons();
         }
+    };
+
+    // Search logic
+    searchInput.oninput = (e) => {
+        const query = e.target.value.toLowerCase();
+        filteredFiles = files.filter(file => 
+            file.original_name.toLowerCase().includes(query) || 
+            (file.mime_type && file.mime_type.toLowerCase().includes(query))
+        );
+        renderFiles();
     };
 
     window.deleteFile = async (id) => {

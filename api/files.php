@@ -10,16 +10,48 @@ $action = $_GET['action'] ?? 'list';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'upload') {
-        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'No file uploaded or upload error']);
+        if (!isset($_FILES['file'])) {
+            echo json_encode(['success' => false, 'message' => 'Lütfen bir dosya seçin.']);
             exit;
         }
 
         $file = $_FILES['file'];
+        
+        // PHP Upload Errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $error_message = 'Dosya yükleme hatası oluştu.';
+            switch ($file['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $error_message = 'Dosya boyutu çok büyük (Maksimum: ' . ini_get('upload_max_filesize') . ')';
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $error_message = 'Dosya sadece kısmen yüklenebildi.';
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $error_message = 'Dosya seçilmedi.';
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $error_message = 'Geçici klasör bulunamadı.';
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $error_message = 'Dosya diske yazılamadı.';
+                    break;
+            }
+            echo json_encode(['success' => false, 'message' => $error_message]);
+            exit;
+        }
+
         $original_name = $file['name'];
         $file_size = $file['size'];
         $mime_type = $file['type'];
         $temp_path = $file['tmp_name'];
+
+        // Extra check for empty files
+        if ($file_size === 0) {
+            echo json_encode(['success' => false, 'message' => 'Boş dosya yükleyemezsiniz.']);
+            exit;
+        }
 
         $ext = pathinfo($original_name, PATHINFO_EXTENSION);
         $new_filename = uniqid() . '.' . $ext;
