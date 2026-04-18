@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL & ~E_NOTICE);
 header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth_helper.php';
@@ -59,6 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $target_path = $upload_dir . $new_filename;
 
         if (move_uploaded_file($temp_path, $target_path)) {
+            // Verify file exists after move
+            if (!file_exists($target_path)) {
+                echo json_encode(['success' => false, 'message' => 'Dosya taşındı ancak hedefte bulunamadı.']);
+                exit;
+            }
+
             $stmt = $pdo->prepare("INSERT INTO files (user_id, filename, original_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)");
             try {
                 $stmt->execute([$user_id, $new_filename, $original_name, 'uploads/' . $new_filename, $file_size, $mime_type]);
