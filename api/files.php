@@ -7,6 +7,17 @@ require_once __DIR__ . '/../includes/auth_helper.php';
 require_login();
 $user_id = get_user_id();
 
+/**
+ * Dosya ismini temizler (Slugify)
+ */
+function slugify($text) {
+    $find = array('Ç', 'Ş', 'Ğ', 'Ü', 'İ', 'Ö', 'ç', 'ş', 'ğ', 'ü', 'ö', 'ı', '+', '#');
+    $replace = array('C', 'S', 'G', 'U', 'I', 'O', 'c', 's', 'g', 'u', 'o', 'i', 'plus', 'sharp');
+    $text = str_replace($find, $replace, $text);
+    $text = preg_replace('/[^a-zA-Z0-9\._-]/', '_', $text);
+    return $text;
+}
+
 $action = $_GET['action'] ?? 'list';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -54,8 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $ext = pathinfo($original_name, PATHINFO_EXTENSION);
-        $new_filename = uniqid() . '.' . $ext;
+        $path_parts = pathinfo($original_name);
+        $ext = isset($path_parts['extension']) ? $path_parts['extension'] : '';
+        $base_name = $path_parts['filename'];
+
+        // Clean filename and add unique ID
+        $clean_name = slugify($base_name);
+        $new_filename = time() . '_' . $clean_name . ($ext ? '.' . $ext : '');
+        
         $upload_dir = __DIR__ . '/../uploads/';
         $target_path = $upload_dir . $new_filename;
 
