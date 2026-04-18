@@ -31,26 +31,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // PHP Upload Errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            $error_message = 'Dosya yükleme hatası oluştu.';
-            switch ($file['error']) {
+            $error_code = $file['error'];
+            $error_message = "Dosya yükleme hatası oluştu (Kod: $error_code). ";
+            switch ($error_code) {
                 case UPLOAD_ERR_INI_SIZE:
+                    $error_message .= 'Dosya boyutu sunucu sınırını aşıyor (upload_max_filesize: ' . ini_get('upload_max_filesize') . ').';
+                    break;
                 case UPLOAD_ERR_FORM_SIZE:
-                    $error_message = 'Dosya boyutu çok büyük (Maksimum: ' . ini_get('upload_max_filesize') . ')';
+                    $error_message .= 'Dosya boyutu HTML form sınırını aşıyor.';
                     break;
                 case UPLOAD_ERR_PARTIAL:
-                    $error_message = 'Dosya sadece kısmen yüklenebildi.';
+                    $error_message .= 'Dosya sadece kısmen yüklenebildi.';
                     break;
                 case UPLOAD_ERR_NO_FILE:
-                    $error_message = 'Dosya seçilmedi.';
+                    $error_message .= 'Dosya seçilmedi.';
                     break;
                 case UPLOAD_ERR_NO_TMP_DIR:
-                    $error_message = 'Geçici klasör bulunamadı.';
+                    $error_message .= 'Sunucuda geçici klasör bulunamadı.';
                     break;
                 case UPLOAD_ERR_CANT_WRITE:
-                    $error_message = 'Dosya diske yazılamadı.';
+                    $error_message .= 'Dosya sunucu diskine yazılamadı (İzin hatası olabilir).';
+                    break;
+                case UPLOAD_ERR_EXTENSION:
+                    $error_message .= 'Bir PHP eklentisi dosya yüklemesini durdurdu.';
+                    break;
+                default:
+                    $error_message .= 'Bilinmeyen bir hata oluştu.';
                     break;
             }
-            echo json_encode(['success' => false, 'message' => $error_message]);
+            echo json_encode(['success' => false, 'message' => $error_message, 'error_code' => $error_code]);
             exit;
         }
 
@@ -60,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $temp_path = $file['tmp_name'];
 
         // Extra check for empty files
-        if ($file_size === 0) {
+        if ($file_size === 0 && $file['error'] === UPLOAD_ERR_OK) {
             echo json_encode(['success' => false, 'message' => 'Boş dosya yükleyemezsiniz.']);
             exit;
         }
@@ -69,9 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ext = isset($path_parts['extension']) ? $path_parts['extension'] : '';
         $base_name = $path_parts['filename'];
 
-        // Clean filename and add unique ID
+        // Clean filename and add unique ID (using uniqid for microsecond precision)
         $clean_name = slugify($base_name);
-        $new_filename = time() . '_' . $clean_name . ($ext ? '.' . $ext : '');
+        $new_filename = uniqid() . '_' . $clean_name . ($ext ? '.' . $ext : '');
         
         $upload_dir = __DIR__ . '/../uploads/';
         $target_path = $upload_dir . $new_filename;
