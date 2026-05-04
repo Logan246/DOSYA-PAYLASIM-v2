@@ -729,7 +729,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateBulkActionsUI();
             };
         }
-    };
 
     // View Switching logic
     if (viewListBtn) {
