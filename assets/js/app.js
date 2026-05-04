@@ -95,13 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LOAD NOTES (Moved to top & Repaired) ---
     const loadNotes = async () => {
-        alert('JS buraya girdi!');
         console.log('Notlar yükleniyor...');
         if (!notesList && !dashboardNotesMini) return;
 
         try {
             const response = await fetch('api/notes.php?action=list');
-            const result = await response.json(); // Fixed result variable
+            const result = await response.json();
             if (result && result.success) {
                 notes = Array.isArray(result.notes) ? result.notes : [];
                 renderNotes();
@@ -963,7 +962,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 result = JSON.parse(xhr.responseText);
             } catch (e) {
-                // Check if response contains "success":true even if it's not valid JSON
                 if (xhr.responseText.includes('"success":true')) {
                     result = { success: true };
                 } else {
@@ -978,7 +976,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (progressBar) progressBar.style.width = '100%';
                 showNotification(`${file.name} başarıyla yüklendi`);
                 
-                // Refresh list
                 setTimeout(loadFiles, 500);
             } else {
                 if (statusText) statusText.textContent = result.message || 'Hata oluştu!';
@@ -987,7 +984,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNotification(result.message || 'Yükleme hatası', 'error');
             }
 
-            // Remove after 4 seconds
             setTimeout(() => {
                 card.classList.add('translate-y-4', 'opacity-0');
                 setTimeout(() => card.remove(), 300);
@@ -1210,6 +1206,5 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
 });
 window.addEventListener('load', () => {
-    console.log("Sayfa yüklendi, notlar manuel zorlanıyor...");
     if(typeof loadNotes === 'function') loadNotes();
 });

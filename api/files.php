@@ -1,8 +1,12 @@
 <?php
-error_reporting(0);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth_helper.php';
+
+// Tabloyu kontrol et
+$pdo->exec("CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, filename TEXT, original_name TEXT, file_path TEXT, file_size INTEGER, mime_type TEXT, tags TEXT DEFAULT '', created_at DATETIME)");
 
 require_login();
 $user_id = get_user_id();
@@ -125,12 +129,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = $stmt->fetch();
 
         if ($file) {
+            $original_name = $file['original_name'];
             $target_path = __DIR__ . '/../uploads/' . $file['filename'];
             if (file_exists($target_path)) {
                 unlink($target_path);
             }
             $stmt = $pdo->prepare("DELETE FROM files WHERE id = ?");
             $stmt->execute([$file_id]);
+
+            // Log deletion
+            log_action($pdo, $user_id, 'DELETE', "Dosya silindi: $original_name");
+
             echo json_encode(['success' => true, 'message' => 'File deleted successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'File not found or access denied']);

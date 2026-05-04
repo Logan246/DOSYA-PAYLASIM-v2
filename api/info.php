@@ -1,7 +1,13 @@
 <?php
-error_reporting(0);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
+require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth_helper.php';
+
+// Tabloları kontrol et
+$pdo->exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, created_at DATETIME)");
+$pdo->exec("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, details TEXT, ip_address TEXT, created_at DATETIME)");
 
 require_login();
 
@@ -9,6 +15,27 @@ require_login();
 $disk_free = disk_free_space("C:") ?: disk_free_space("/");
 $disk_total = disk_total_space("C:") ?: disk_total_space("/");
 $disk_usage = round((($disk_total - $disk_free) / $disk_total) * 100, 2);
+
+// RAM Usage (Windows specific for now as it's common on local setups)
+$ram_usage = "Bilgi alınamadı";
+if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+    $cmd = 'wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value';
+    $output = shell_exec($cmd);
+    if ($output) {
+        $lines = explode("\n", trim($output));
+        $total_ram = 0;
+        $free_ram = 0;
+        foreach($lines as $line) {
+            if (strpos($line, 'TotalVisibleMemorySize') !== false) $total_ram = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
+            if (strpos($line, 'FreePhysicalMemory') !== false) $free_ram = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
+        }
+        if ($total_ram > 0) {
+            $used_ram = $total_ram - $free_ram;
+            $ram_pct = round(($used_ram / $total_ram) * 100, 2);
+            $ram_usage = $ram_pct . "% (" . round($used_ram / 1024 / 1024, 2) . " GB / " . round($total_ram / 1024 / 1024, 2) . " GB)";
+        }
+    }
+}
 
 // Uptime calculation (cross-platform)
 $uptime = "Bilgi alınamadı";
@@ -56,5 +83,6 @@ echo json_encode([
         'free' => $disk_free,
         'usage' => $disk_usage
     ],
+    'ram' => $ram_usage,
     'uptime' => $uptime
 ]);

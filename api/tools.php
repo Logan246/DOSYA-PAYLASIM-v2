@@ -1,5 +1,6 @@
 <?php
-error_reporting(0);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/auth_helper.php';
 
@@ -69,6 +70,29 @@ if ($action === 'port_check') {
         'open' => $is_open,
         'message' => $is_open ? "Port $port açık." : "Port $port kapalı veya ulaşılamıyor."
     ]);
+    exit;
+}
+
+if ($action === 'ip_info') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $ip = $input['ip'] ?? '';
+
+    if (empty($ip) || (!filter_var($ip, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9\.-]+$/', $ip))) {
+        echo json_encode(['status' => 'fail', 'message' => 'Geçersiz IP adresi.']);
+        exit;
+    }
+
+    $url = "http://ip-api.com/json/" . urlencode($ip);
+    $response = @file_get_contents($url);
+    
+    if ($response) {
+        // Log tool usage
+        require_once __DIR__ . '/../includes/db.php';
+        log_action($pdo, get_user_id(), 'TOOL_IPINFO', "IP: $ip");
+        echo $response;
+    } else {
+        echo json_encode(['status' => 'fail', 'message' => 'API ulaşılamadı.']);
+    }
     exit;
 }
 

@@ -93,7 +93,7 @@
     </div>
 
     <!-- Main App Container -->
-    <div id="dashboard-container" class="flex h-screen overflow-hidden">
+    <div id="dashboard-container" class="hidden flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-gray-100 dark:border-dark-border transform -translate-x-full lg:translate-x-0 transition-transform duration-300 lg:static">
             <div class="h-full flex flex-col">
@@ -105,19 +105,19 @@
                 </div>
                 
                 <nav class="flex-1 px-4 py-4 space-y-1">
-                    <button id="btn-dashboard" data-tab="dashboard" class="sidebar-item active w-full p-3 rounded-xl flex items-center gap-3 font-medium">
+                    <button data-tab="dashboard" class="sidebar-item active w-full p-3 rounded-xl flex items-center gap-3 font-medium">
                         <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                         <span>Dashboard</span>
                     </button>
-                    <button id="btn-notes" data-tab="notes" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
+                    <button data-tab="notes" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
                         <i data-lucide="sticky-note" class="w-5 h-5"></i>
                         <span>Hızlı Notlar</span>
                     </button>
-                    <button id="btn-tools" data-tab="tools" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
+                    <button data-tab="tools" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
                         <i data-lucide="wrench" class="w-5 h-5"></i>
                         <span>Sistem Araçları</span>
                     </button>
-                    <button id="btn-activity" data-tab="activity" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
+                    <button data-tab="activity" class="sidebar-item w-full p-3 rounded-xl flex items-center gap-3 font-medium">
                         <i data-lucide="activity" class="w-5 h-5"></i>
                         <span>Aktivite Logları</span>
                     </button>
@@ -224,6 +224,7 @@
                                     <tr>
                                         <th class="px-6 py-4">Dosya</th>
                                         <th class="px-6 py-4">Boyut</th>
+                                        <th class="px-6 py-4">Tür</th>
                                         <th class="px-6 py-4">Tarih</th>
                                         <th class="px-6 py-4 text-right">Aksiyon</th>
                                     </tr>
@@ -237,54 +238,51 @@
                             <p class="font-bold">Dosya Bulunmuyor</p>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Right Panel: Notes, Tools & Health -->
-                    <div class="w-full lg:w-80 flex flex-col gap-6">
-                        <!-- System Health Panel -->
-                        <div class="bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-dark-border p-6 shadow-sm">
-                            <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                <i data-lucide="heart-pulse" class="w-4 h-4 text-red-500"></i>
-                                Sistem Sağlığı
-                            </h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <div class="flex justify-between text-[10px] font-bold mb-1 opacity-60 uppercase">
-                                        <span>Disk Kullanımı (C:)</span>
-                                        <span id="disk-usage-pct">0%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-100 dark:bg-dark-bg rounded-full h-1.5 overflow-hidden">
-                                        <div id="disk-progress" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
-                                    </div>
-                                    <p class="text-[9px] mt-1 text-gray-400 font-medium" id="disk-info">Yükleniyor...</p>
+                <!-- Right Panel: Notes, Tools & Health -->
+                <div class="w-full lg:w-80 flex flex-col gap-6">
+                    <!-- System Health Panel -->
+                    <div class="bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-dark-border p-6 shadow-sm">
+                        <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                            <i data-lucide="heart-pulse" class="w-4 h-4 text-red-500"></i>
+                            Sistem Sağlığı
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-[10px] font-bold mb-1 opacity-60 uppercase">
+                                    <span>Disk Kullanımı (C:)</span>
+                                    <span id="disk-usage-pct">0%</span>
                                 </div>
-                                <div class="pt-2 border-t border-gray-50 dark:border-dark-border">
-                                    <p class="text-[10px] font-bold opacity-60 uppercase mb-1">Uptime</p>
-                                    <p id="system-uptime" class="text-xs font-mono font-bold text-blue-600">...</p>
+                                <div class="w-full bg-gray-100 dark:bg-dark-bg rounded-full h-1.5 overflow-hidden">
+                                    <div id="disk-progress" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
                                 </div>
+                                <p class="text-[9px] mt-1 text-gray-400 font-medium" id="disk-info">Yükleniyor...</p>
                             </div>
-                        </div>
-
-                        <div class="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-6">
-                            <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                <i data-lucide="sticky-note" class="w-4 h-4 text-yellow-500"></i>
-                                Hızlı Notlar
-                            </h3>
-                            <div id="dashboard-notes-mini" class="space-y-3">
-                                <!-- Mini notes will be populated here -->
-                                <p class="text-xs text-gray-400 italic">Not bulunmuyor...</p>
+                            <div class="pt-2 border-t border-gray-50 dark:border-dark-border">
+                                <p class="text-[10px] font-bold opacity-60 uppercase mb-1">Uptime</p>
+                                <p id="system-uptime" class="text-xs font-mono font-bold text-blue-600">...</p>
                             </div>
                         </div>
                     </div>
+
+                    <div class="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-6">
+                        <h3 class="font-bold text-gray-800 dark:text-dark-text mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                            <i data-lucide="sticky-note" class="w-4 h-4 text-yellow-500"></i>
+                            Hızlı Notlar
+                        </h3>
+                        <div id="dashboard-notes-mini" class="space-y-3">
+                            <!-- Mini notes will be populated here -->
+                            <p class="text-xs text-gray-400 italic">Not bulunmuyor...</p>
+                        </div>
+                    </div>
+                </div>
                 </div>
 
                 <!-- TAB: Notes -->
                 <div id="tab-notes" class="tab-content hidden max-w-4xl mx-auto">
                     <div class="bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-dark-border p-8 shadow-sm">
                         <h2 class="text-2xl font-black mb-6">Hızlı Notlar</h2>
-                        <!-- Hızlı Notlar Liste Alanı -->
-                        <div id="notes-list" class="grid grid-cols-1 gap-4 mb-8">
-                            <!-- Notlar buraya gelecek -->
-                        </div>
                         
                         <div class="space-y-6">
                             <div class="flex flex-col sm:flex-row gap-4">
@@ -295,40 +293,15 @@
                                     <button data-priority="high" class="priority-btn flex-1 sm:w-24 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-red-50 text-red-600 border-2 border-transparent">Yüksek</button>
                                 </div>
                             </div>
-                            <button id="add-note-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 dark:shadow-none transition-all active:scale-95">Notu Kaydet</button>
+                            <button id="save-note-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 dark:shadow-none transition-all active:scale-95">Notu Kaydet</button>
+                            <div id="notes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8" style="min-height: 100px;"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- TAB: Tools -->
                 <div id="tab-tools" class="tab-content hidden space-y-6">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-black">Sistem Araçları</h2>
-                        <div class="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-blue-600">Canlı Sunucu Durumu</p>
-                        </div>
-                    </div>
-
-                    <!-- System Info Overview -->
-                    <div id="system-info-overview" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        <div class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">IP Adresi</p>
-                            <p id="tool-info-ip" class="font-mono text-sm font-bold text-blue-600">...</p>
-                        </div>
-                        <div class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">İşletim Sistemi</p>
-                            <p id="tool-server-os" class="text-sm font-bold truncate">...</p>
-                        </div>
-                        <div class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">PHP Versiyon</p>
-                            <p id="tool-php-version" class="text-sm font-bold">...</p>
-                        </div>
-                        <div class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Sunucu Saati</p>
-                            <p id="tool-server-time" class="text-sm font-bold">...</p>
-                        </div>
-                    </div>
-
+                    <h2 class="text-2xl font-black">Sistem Araçları</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Ping Tool -->
                         <div class="bg-white dark:bg-dark-card p-6 rounded-3xl border border-gray-100 dark:border-dark-border shadow-sm">
@@ -474,7 +447,7 @@
         </div>
     </div>
 
-    <script src="assets/js/App.js"></script>
+    <script src="assets/js/app.js"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>
