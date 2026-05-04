@@ -147,15 +147,38 @@
                     <button id="mobile-menu-btn" class="lg:hidden p-2 text-gray-500">
                         <i data-lucide="menu" class="w-6 h-6"></i>
                     </button>
-                    <div class="relative max-w-md w-full hidden sm:block">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                        </span>
-                        <input type="text" id="search-input" placeholder="Sistemde arayın..." class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <div class="relative max-w-2xl w-full hidden sm:flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="search-input" placeholder="İsim, MD5 veya etiketle ara..." class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        </div>
+                        <select id="filter-size" class="px-3 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all">Tüm Boyutlar</option>
+                            <option value="small">< 10MB</option>
+                            <option value="medium">10MB - 100MB</option>
+                            <option value="large">> 100MB</option>
+                        </select>
+                        <select id="filter-category" class="px-3 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all">Tüm Kategoriler</option>
+                            <option value="Genel">Genel</option>
+                            <option value="Sürücü">Sürücü</option>
+                            <option value="Yedek">Yedek</option>
+                            <option value="Belge">Belge</option>
+                            <option value="Yazılım">Yazılım</option>
+                        </select>
                     </div>
                 </div>
                 
                 <div class="flex items-center gap-2 lg:gap-4">
+                    <select id="upload-category" class="px-3 py-2 bg-gray-50 dark:bg-dark-bg border border-gray-100 dark:border-dark-border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Genel">Genel</option>
+                        <option value="Sürücü">Sürücü</option>
+                        <option value="Yedek">Yedek</option>
+                        <option value="Belge">Belge</option>
+                        <option value="Yazılım">Yazılım</option>
+                    </select>
                     <button id="dark-mode-toggle" class="p-2.5 rounded-xl bg-gray-50 dark:bg-dark-bg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400">
                         <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
                         <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
@@ -189,8 +212,16 @@
                             <div class="min-w-0"><p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Son Yükleme</p><p class="text-sm font-bold truncate" id="last-upload-name">-</p><p class="text-[10px] text-purple-600 font-black uppercase" id="last-upload-time">Yok</p></div>
                         </div>
                         <div class="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-4">
-                            <div class="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-xl"><i data-lucide="server" class="w-6 h-6"></i></div>
-                            <div><p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Sunucu Bilgisi</p><p class="text-sm font-bold" id="php-version">PHP: -</p><p class="text-[10px] text-orange-600 font-bold" id="server-time">-</p></div>
+                            <div class="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-xl"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">En Çok İndirilen</p>
+                                <p class="text-sm font-bold truncate" id="most-downloaded-name">-</p>
+                                <p class="text-[10px] text-orange-600 font-black uppercase" id="most-downloaded-count">0 İndirme</p>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm flex items-center gap-4">
+                            <div class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl"><i data-lucide="server" class="w-6 h-6"></i></div>
+                            <div><p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Sunucu Bilgisi</p><p class="text-sm font-bold" id="php-version">PHP: -</p><p class="text-[10px] text-red-600 font-bold" id="server-time">-</p></div>
                         </div>
                     </div>
 
@@ -212,9 +243,17 @@
                                 <button data-filter="document" class="filter-btn px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-gray-100 dark:bg-dark-bg text-gray-600 dark:text-gray-400 hover:bg-gray-200">Belgeler</button>
                                 <button data-filter="script" class="filter-btn px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-gray-100 dark:bg-dark-bg text-gray-600 dark:text-gray-400 hover:bg-gray-200">Scriptler</button>
                             </div>
-                            <div class="flex bg-gray-100 dark:bg-dark-bg p-1 rounded-xl w-fit self-end sm:self-auto">
-                                <button id="view-list" class="p-2 rounded-lg transition-all text-blue-600 bg-white dark:bg-dark-card shadow-sm"><i data-lucide="list" class="w-4 h-4"></i></button>
-                                <button id="view-grid" class="p-2 rounded-lg transition-all text-gray-400"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+                            <div class="flex items-center gap-3">
+                                <div id="bulk-actions" class="hidden flex items-center gap-2 px-3 py-1 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
+                                    <span class="text-[10px] font-black text-red-600 uppercase" id="selected-count">0 Seçili</span>
+                                    <button onclick="bulkDelete()" class="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Toplu Sil">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <div class="flex bg-gray-100 dark:bg-dark-bg p-1 rounded-xl w-fit self-end sm:self-auto">
+                                    <button id="view-list" class="p-2 rounded-lg transition-all text-blue-600 bg-white dark:bg-dark-card shadow-sm"><i data-lucide="list" class="w-4 h-4"></i></button>
+                                    <button id="view-grid" class="p-2 rounded-lg transition-all text-gray-400"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+                                </div>
                             </div>
                         </div>
 
@@ -222,8 +261,13 @@
                             <table class="w-full text-left">
                                 <thead class="bg-gray-50/50 dark:bg-dark-bg/50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                                     <tr>
-                                        <th class="px-6 py-4">Dosya</th>
+                                        <th class="px-6 py-4 w-10">
+                                            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        </th>
+                                        <th class="px-6 py-4">Dosya / MD5</th>
                                         <th class="px-6 py-4">Boyut</th>
+                                        <th class="px-6 py-4">İndirme</th>
+                                        <th class="px-6 py-4">Kategori</th>
                                         <th class="px-6 py-4">Tür</th>
                                         <th class="px-6 py-4">Tarih</th>
                                         <th class="px-6 py-4 text-right">Aksiyon</th>
@@ -442,6 +486,32 @@
                 <div class="pt-6 flex gap-3">
                     <button onclick="closeTagModal()" class="flex-1 py-2 text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all">İptal</button>
                     <button id="save-tags-btn" class="flex-1 py-2 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-200 dark:shadow-none hover:bg-purple-700 transition-all">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Action Modal (Preview & Rename) -->
+    <div id="action-modal" class="fixed inset-0 bg-black/70 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div id="action-modal-container" class="bg-white dark:bg-dark-card w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-dark-border flex flex-col max-h-[95vh] transform transition-all scale-95 opacity-0">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex items-center justify-between bg-white/50 dark:bg-dark-card/50 backdrop-blur-sm">
+                <div class="flex items-center gap-3">
+                    <div id="action-modal-icon" class="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">
+                        <i data-lucide="eye" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-bold truncate" id="action-modal-title">Dosya İşlemi</h3>
+                </div>
+                <button onclick="closeActionModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div id="action-modal-body" class="flex-1 overflow-auto p-0 flex items-center justify-center bg-gray-50 dark:bg-dark-bg/50">
+                <!-- Content injected by JS -->
+            </div>
+
+            <div id="action-modal-footer" class="px-6 py-4 border-t border-gray-100 dark:border-dark-border flex justify-between items-center bg-white/50 dark:bg-dark-card/50 backdrop-blur-sm">
+                <p id="action-modal-info" class="text-xs text-gray-500 font-medium"></p>
+                <div class="flex gap-3" id="action-modal-buttons">
+                    <!-- Buttons injected by JS -->
                 </div>
             </div>
         </div>

@@ -24,9 +24,23 @@ try {
         file_size INTEGER NOT NULL,
         mime_type TEXT,
         tags TEXT DEFAULT '',
+        category TEXT DEFAULT 'Genel',
+        md5_hash TEXT,
+        download_count INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
+
+    // Ensure new columns exist
+    try {
+        $pdo->exec("ALTER TABLE files ADD COLUMN category TEXT DEFAULT 'Genel'");
+    } catch (PDOException $e) {}
+    try {
+        $pdo->exec("ALTER TABLE files ADD COLUMN md5_hash TEXT");
+    } catch (PDOException $e) {}
+    try {
+        $pdo->exec("ALTER TABLE files ADD COLUMN download_count INTEGER DEFAULT 0");
+    } catch (PDOException $e) {}
 
     // Create notes table
     $pdo->exec("CREATE TABLE IF NOT EXISTS notes (
@@ -41,7 +55,7 @@ try {
     // Priority sütununun varlığını kontrol et ve yoksa ekle
     try {
         $pdo->exec("ALTER TABLE notes ADD COLUMN priority TEXT DEFAULT 'normal'");
-    } catch (PDOException $e) { /* Sütun zaten var olabilir, hatayı yoksay */ }
+    } catch (PDOException $e) { /* Sütun zaten var olabilir */ }
 
     // Create logs table
     $pdo->exec("CREATE TABLE IF NOT EXISTS logs (
@@ -58,9 +72,15 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         file_id INTEGER NOT NULL,
         share_token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
     )");
+
+    // Ensure expires_at column exists
+    try {
+        $pdo->exec("ALTER TABLE shares ADD COLUMN expires_at DATETIME");
+    } catch (PDOException $e) { /* Sütun zaten var olabilir */ }
 
     /**
      * Sistem aktivitelerini loglamak için yardımcı fonksiyon

@@ -30,3 +30,17 @@ if ($action === 'list') {
     }
     exit;
 }
+
+if ($action === 'add') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $action_name = $input['action'] ?? '';
+    $details = $input['details'] ?? '';
+    
+    if ($action_name) {
+        log_action($pdo, get_user_id(), $action_name, $details);
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Action name required.']);
+    }
+    exit;
+}

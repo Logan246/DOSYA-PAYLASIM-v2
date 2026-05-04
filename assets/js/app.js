@@ -80,11 +80,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveTagsBtn = document.getElementById('save-tags-btn');
     const popularTagChips = document.querySelectorAll('.tag-chip');
 
+    // Preview Elements
+    const actionModal = document.getElementById('action-modal');
+    const actionModalContainer = document.getElementById('action-modal-container');
+    const actionModalTitle = document.getElementById('action-modal-title');
+    const actionModalBody = document.getElementById('action-modal-body');
+    const actionModalInfo = document.getElementById('action-modal-info');
+    const actionModalButtons = document.getElementById('action-modal-buttons');
+    const actionModalIcon = document.getElementById('action-modal-icon');
+
+    const filterSizeSelect = document.getElementById('filter-size');
+    const filterCategorySelect = document.getElementById('filter-category');
+    const selectAllCheckbox = document.getElementById('select-all');
+    const bulkActionsContainer = document.getElementById('bulk-actions');
+    const selectedCountDisplay = document.getElementById('selected-count');
+    const uploadStatusContainer = document.getElementById('upload-status-container');
+
     // State
     let user = null;
     let files = [];
     let filteredFiles = [];
     let notes = [];
+    let selectedFileIds = new Set();
     let currentView = 'list'; // 'list' or 'grid'
     let currentFilter = 'all';
     let isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -149,16 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper: Get FontAwesome Icon and Color for Mime Type
     const getFileFAIcon = (mimeType, originalName) => {
         const ext = originalName.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return { icon: 'fa-file-image', color: 'text-blue-500' };
-        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: 'text-red-500' };
-        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'fa-file-archive', color: 'text-yellow-500' };
-        if (['doc', 'docx'].includes(ext)) return { icon: 'fa-file-word', color: 'text-blue-600' };
-        if (['xls', 'xlsx', 'csv'].includes(ext)) return { icon: 'fa-file-excel', color: 'text-green-600' };
-        if (['ppt', 'pptx'].includes(ext)) return { icon: 'fa-file-powerpoint', color: 'text-orange-500' };
-        if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return { icon: 'fa-file-video', color: 'text-purple-500' };
-        if (['mp3', 'wav', 'ogg'].includes(ext)) return { icon: 'fa-file-audio', color: 'text-pink-500' };
-        if (['txt', 'md', 'rtf'].includes(ext)) return { icon: 'fa-file-lines', color: 'text-gray-500' };
-        if (['html', 'css', 'js', 'php', 'py', 'json'].includes(ext)) return { icon: 'fa-file-code', color: 'text-indigo-500' };
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return { icon: 'fa-file-image', color: 'text-rose-500' };
+        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: 'text-red-600' };
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'fa-file-archive', color: 'text-amber-500' };
+        if (['doc', 'docx'].includes(ext)) return { icon: 'fa-file-word', color: 'text-blue-700' };
+        if (['xls', 'xlsx', 'csv'].includes(ext)) return { icon: 'fa-file-excel', color: 'text-emerald-600' };
+        if (['ppt', 'pptx'].includes(ext)) return { icon: 'fa-file-powerpoint', color: 'text-orange-600' };
+        if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return { icon: 'fa-file-video', color: 'text-indigo-500' };
+        if (['mp3', 'wav', 'ogg'].includes(ext)) return { icon: 'fa-file-audio', color: 'text-fuchsia-500' };
+        if (['txt', 'md', 'rtf'].includes(ext)) return { icon: 'fa-file-lines', color: 'text-slate-500' };
+        if (['html', 'css', 'js', 'php', 'py', 'json', 'sql'].includes(ext)) return { icon: 'fa-file-code', color: 'text-violet-600' };
         return { icon: 'fa-file', color: 'text-gray-400' };
     };
 
@@ -166,6 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const isImage = (mimeType, originalName) => {
         const ext = originalName.split('.').pop().toLowerCase();
         return (mimeType && mimeType.startsWith('image/')) || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    };
+
+    // Helper: Is Previewable
+    const isPreviewable = (mimeType, originalName) => {
+        const ext = originalName.split('.').pop().toLowerCase();
+        return isImage(mimeType, originalName) || ext === 'pdf';
     };
 
     // Helper: Get Icon for Mime Type (Lucide fallback)
@@ -204,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Helper: Time Ago
-    const timeAgo = (date) => {
+    function timeAgo(date) {
         try {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
             let interval = seconds / 31536000;
@@ -219,10 +242,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (interval > 1) return Math.floor(interval) + " dk önce";
             return "az önce";
         } catch (e) { return "-"; }
-    };
+    }
+
+    // Helper: Normalize String for Turkish Search
+    function normalizeText(text) {
+        if (!text) return '';
+        return text
+            .toLocaleLowerCase('tr-TR')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, "");
+    }
 
     // Auth Logic
-    const checkAuth = async () => {
+    async function checkAuth() {
         if (isDarkMode && document.documentElement) document.documentElement.classList.add('dark');
         try {
             const response = await fetch('api/auth.php?action=check');
@@ -237,15 +269,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Auth check error:', error);
             showAuth();
         }
-    };
+    }
 
-    const showAuth = () => {
+    function showAuth() {
         if (authContainer) authContainer.classList.remove('hidden');
         if (dashboardContainer) dashboardContainer.classList.add('hidden');
         if (window.lucide) lucide.createIcons();
-    };
+    }
 
-    const showDashboard = () => {
+    function showDashboard() {
         if (authContainer) authContainer.classList.add('hidden');
         if (dashboardContainer) dashboardContainer.classList.remove('hidden');
         if (currentUsername && user) currentUsername.textContent = user.username;
@@ -263,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { loadLogs(); } catch(e) { console.error("Logs fail", e); }
         
         if (window.lucide) lucide.createIcons();
-    };
+    }
 
     // Event Listeners: Auth Switching
     if (showRegister) {
@@ -347,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // File Logic
-    const loadFiles = async () => {
+    async function loadFiles() {
         if (!filesList && !gridViewContainer) return;
         
         try {
@@ -361,24 +393,45 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Files load error:', error);
         }
-    };
+    }
 
-    const applyFilter = () => {
-        if (currentFilter === 'all') {
-            filteredFiles = files;
-        } else {
-            filteredFiles = files.filter(file => {
-                const mime = (file.mime_type || '').toLowerCase();
-                const ext = file.original_name.split('.').pop().toLowerCase();
-                
-                if (currentFilter === 'image') return mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-                if (currentFilter === 'document') return mime.includes('pdf') || mime.includes('word') || mime.includes('excel') || mime.includes('text') || ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'].includes(ext);
-                if (currentFilter === 'script') return mime.includes('javascript') || mime.includes('php') || mime.includes('python') || ['js', 'php', 'py', 'html', 'css', 'sql'].includes(ext);
-                return true;
-            });
-        }
+    function applyFilter() {
+        const query = searchInput ? normalizeText(searchInput.value) : '';
+        const sizeFilter = filterSizeSelect ? filterSizeSelect.value : 'all';
+        const categoryFilter = filterCategorySelect ? filterCategorySelect.value : 'all';
+
+        filteredFiles = files.filter(file => {
+            const mime = (file.mime_type || '').toLowerCase();
+            const ext = file.original_name.split('.').pop().toLowerCase();
+            const name = normalizeText(file.original_name);
+            const md5 = normalizeText(file.md5_hash || '');
+            const tags = normalizeText(file.tags || '');
+            const category = file.category || 'Genel';
+            const size = file.file_size;
+
+            // 1. Tab Filter (image, document, script)
+            let matchesTab = true;
+            if (currentFilter === 'image') matchesTab = mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+            else if (currentFilter === 'document') matchesTab = mime.includes('pdf') || mime.includes('word') || mime.includes('excel') || mime.includes('text') || ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'].includes(ext);
+            else if (currentFilter === 'script') matchesTab = mime.includes('javascript') || mime.includes('php') || mime.includes('python') || ['js', 'php', 'py', 'html', 'css', 'sql'].includes(ext);
+
+            // 2. Search Query (name, md5, tags)
+            const matchesQuery = !query || name.includes(query) || md5.includes(query) || tags.includes(query);
+
+            // 3. Size Filter
+            let matchesSize = true;
+            if (sizeFilter === 'small') matchesSize = size < 10 * 1024 * 1024;
+            else if (sizeFilter === 'medium') matchesSize = size >= 10 * 1024 * 1024 && size <= 100 * 1024 * 1024;
+            else if (sizeFilter === 'large') matchesSize = size > 100 * 1024 * 1024;
+
+            // 4. Category Filter
+            const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+
+            return matchesTab && matchesQuery && matchesSize && matchesCategory;
+        });
+
         renderFiles();
-    };
+    }
 
     const updateStats = () => {
         if (totalFilesCount) totalFilesCount.textContent = files.length;
@@ -398,10 +451,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastFile = files[0];
             if (lastUploadName) lastUploadName.textContent = lastFile.original_name;
             if (lastUploadTime) lastUploadTime.textContent = timeAgo(lastFile.created_at);
+
+            // Most Downloaded
+            const mostDownloaded = [...files].sort((a, b) => (b.download_count || 0) - (a.download_count || 0))[0];
+            const mostDownloadedName = document.getElementById('most-downloaded-name');
+            const mostDownloadedCount = document.getElementById('most-downloaded-count');
+            if (mostDownloadedName) mostDownloadedName.textContent = mostDownloaded.original_name;
+            if (mostDownloadedCount) mostDownloadedCount.textContent = `${mostDownloaded.download_count || 0} İndirme`;
         } else {
             if (mostFileTypeDisplay) mostFileTypeDisplay.textContent = 'Popüler: -';
             if (lastUploadName) lastUploadName.textContent = '-';
             if (lastUploadTime) lastUploadTime.textContent = 'Yok';
+            
+            const mostDownloadedName = document.getElementById('most-downloaded-name');
+            const mostDownloadedCount = document.getElementById('most-downloaded-count');
+            if (mostDownloadedName) mostDownloadedName.textContent = '-';
+            if (mostDownloadedCount) mostDownloadedCount.textContent = '0 İndirme';
         }
     };
 
@@ -433,10 +498,13 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredFiles.forEach(file => {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-gray-50/50 transition-colors group';
+            if (selectedFileIds.has(file.id)) tr.classList.add('bg-blue-50/30');
+
             const fa = getFileFAIcon(file.mime_type, file.original_name);
             const isImg = isImage(file.mime_type, file.original_name);
             const ext = file.original_name.split('.').pop().toLowerCase();
-            const isEditable = ['txt', 'bat', 'py'].includes(ext);
+            const canPreview = isPreviewable(file.mime_type, file.original_name);
+            const escapedName = file.original_name.replace(/'/g, "\\'");
             
             // Format tags
             const tagHtml = (file.tags || '').split(',').filter(t => t.trim()).map(t => {
@@ -452,18 +520,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tr.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox" class="file-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-id="${file.id}" ${selectedFileIds.has(file.id) ? 'checked' : ''}>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center ${fa.color} group-hover:bg-blue-50 transition-colors overflow-hidden border border-gray-100">
                             ${isImg ? `<img src="api/download.php?id=${file.id}" class="w-full h-full object-cover">` : `<i class="fa-solid ${fa.icon} text-lg"></i>`}
                         </div>
-                        <div class="flex flex-col gap-1">
+                        <div class="flex flex-col gap-0.5">
                             <span class="text-sm font-semibold text-gray-900 block truncate max-w-[150px] sm:max-w-xs" title="${file.original_name}">${file.original_name}</span>
-                            <div class="flex flex-wrap gap-1">${tagHtml}</div>
+                            <span class="text-[9px] font-mono text-gray-400 opacity-70">MD5: ${file.md5_hash || 'N/A'}</span>
+                            <div class="flex flex-wrap gap-1 mt-1">${tagHtml}</div>
                         </div>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
                     ${formatBytes(file.file_size)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-bold">
+                    <div class="flex items-center gap-1.5">
+                        <i data-lucide="download-cloud" class="w-3.5 h-3.5 text-blue-500"></i>
+                        <span>${file.download_count || 0}</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200">
+                        ${file.category || 'Genel'}
+                    </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -475,14 +558,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div class="flex items-center justify-end gap-1 sm:gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="openTagModal(${file.id}, '${file.tags || ''}')" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Etiketle">
+                        <button onclick="openTagModal(${file.id}, '${(file.tags || '').replace(/'/g, "\\'")}')" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Etiketle">
                             <i data-lucide="tag" class="w-4 h-4"></i>
                         </button>
-                        ${isEditable ? `
-                        <button onclick="openEditModal(${file.id}, '${file.original_name}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Düzenle">
-                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        ${canPreview ? `
+                        <button onclick="openActionModal('preview', ${file.id}, '${escapedName}', '${file.mime_type}', ${file.file_size})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Önizle">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
                         </button>
                         ` : ''}
+                        <button onclick="openActionModal('rename', ${file.id}, '${escapedName}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Düzenle">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
                         <button onclick="shareFile(${file.id})" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Paylaş">
                             <i data-lucide="share-2" class="w-4 h-4"></i>
                         </button>
@@ -495,8 +581,58 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
             `;
+
+            // Checkbox logic
+            const checkbox = tr.querySelector('.file-checkbox');
+            checkbox.onchange = (e) => {
+                if (e.target.checked) {
+                    selectedFileIds.add(file.id);
+                    tr.classList.add('bg-blue-50/30');
+                } else {
+                    selectedFileIds.delete(file.id);
+                    tr.classList.remove('bg-blue-50/30');
+                }
+                updateBulkActionsUI();
+            };
+
             filesList.appendChild(tr);
         });
+    };
+
+    const updateBulkActionsUI = () => {
+        if (!bulkActionsContainer || !selectedCountDisplay) return;
+        const count = selectedFileIds.size;
+        if (count > 0) {
+            bulkActionsContainer.classList.remove('hidden');
+            selectedCountDisplay.textContent = `${count} Seçili`;
+        } else {
+            bulkActionsContainer.classList.add('hidden');
+        }
+    };
+
+    window.bulkDelete = async () => {
+        if (selectedFileIds.size === 0) return;
+        if (!confirm(`${selectedFileIds.size} dosyayı toplu silmek istediğinize emin misiniz?`)) return;
+
+        try {
+            const response = await fetch('api/files.php?action=bulk_delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: Array.from(selectedFileIds) })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showNotification(result.message);
+                selectedFileIds.clear();
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                updateBulkActionsUI();
+                loadFiles();
+            } else {
+                showNotification(result.message, 'error');
+            }
+        } catch (e) {
+            showNotification('Toplu silme hatası', 'error');
+        }
     };
 
     const renderGridView = () => {
@@ -507,6 +643,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const isImg = isImage(file.mime_type, file.original_name);
             const ext = file.original_name.split('.').pop().toLowerCase();
             const isEditable = ['txt', 'bat', 'py'].includes(ext);
+            const canPreview = isPreviewable(file.mime_type, file.original_name);
+            const escapedName = file.original_name.replace(/'/g, "\\'");
 
             // Format tags for grid
             const tagHtml = (file.tags || '').split(',').filter(t => t.trim()).map(t => {
@@ -528,18 +666,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-gray-900 truncate" title="${file.original_name}">${file.original_name}</p>
-                    <p class="text-xs text-gray-400 mt-0.5">${formatBytes(file.file_size)} • ${new Date(file.created_at).toLocaleDateString('tr-TR')}</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <p class="text-[10px] text-gray-400 font-medium">${formatBytes(file.file_size)} • ${new Date(file.created_at).toLocaleDateString('tr-TR')}</p>
+                        <span class="flex items-center gap-1 text-[10px] text-blue-500 font-black">
+                            <i data-lucide="download-cloud" class="w-2.5 h-2.5"></i>
+                            ${file.download_count || 0}
+                        </span>
+                    </div>
                 </div>
                 <div class="flex items-center justify-between pt-2 border-t border-gray-50">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                         ${(file.mime_type || 'Other').split('/')[0]}
                     </span>
                     <div class="flex gap-1">
-                        <button onclick="openTagModal(${file.id}, '${file.tags || ''}')" class="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Etiketle">
+                        <button onclick="openTagModal(${file.id}, '${(file.tags || '').replace(/'/g, "\\'")}')" class="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Etiketle">
                             <i data-lucide="tag" class="w-4 h-4"></i>
                         </button>
+                        ${canPreview ? `
+                        <button onclick="openPreviewModal(${file.id}, '${escapedName}', '${file.mime_type}', ${file.file_size})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Önizle">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        ` : ''}
                         ${isEditable ? `
-                        <button onclick="openEditModal(${file.id}, '${file.original_name}')" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Düzenle">
+                        <button onclick="openEditModal(${file.id}, '${escapedName}')" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Düzenle">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                         </button>
                         ` : ''}
@@ -559,6 +708,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+        if (filterSizeSelect) filterSizeSelect.onchange = applyFilter;
+        if (filterCategorySelect) filterCategorySelect.onchange = applyFilter;
+        if (searchInput) searchInput.oninput = applyFilter;
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.onchange = () => {
+                const checkboxes = document.querySelectorAll('.file-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                    const id = parseInt(cb.dataset.id);
+                    if (cb.checked) {
+                        selectedFileIds.add(id);
+                        cb.closest('tr')?.classList.add('bg-blue-50/30');
+                    } else {
+                        selectedFileIds.delete(id);
+                        cb.closest('tr')?.classList.remove('bg-blue-50/30');
+                    }
+                });
+                updateBulkActionsUI();
+            };
+        }
+    };
+
     // View Switching logic
     if (viewListBtn) {
         viewListBtn.onclick = () => {
@@ -574,18 +746,6 @@ document.addEventListener('DOMContentLoaded', () => {
             currentView = 'grid';
             viewGridBtn.className = 'p-2 rounded-md transition-all text-blue-600 bg-white shadow-sm';
             if (viewListBtn) viewListBtn.className = 'p-2 rounded-md transition-all text-gray-400 hover:text-gray-600';
-            renderFiles();
-        };
-    }
-
-    // Search logic
-    if (searchInput) {
-        searchInput.oninput = (e) => {
-            const query = e.target.value.toLowerCase();
-            filteredFiles = files.filter(file => 
-                file.original_name.toLowerCase().includes(query) || 
-                (file.mime_type && file.mime_type.toLowerCase().includes(query))
-            );
             renderFiles();
         };
     }
@@ -731,54 +891,155 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Edit Modal Logic
-    window.openEditModal = async (id, filename) => {
-        currentEditingFileId = id;
-        if (editFilenameDisplay) editFilenameDisplay.textContent = filename;
-        if (editModal) editModal.classList.remove('hidden');
-        if (editContentTextarea) editContentTextarea.value = 'Yükleniyor...';
-        
-        try {
-            const response = await fetch(`api/files.php?action=get_content&id=${id}`);
-            const result = await response.json();
-            if (result.success) {
-                if (editContentTextarea) editContentTextarea.value = result.content;
-            } else {
-                showNotification(result.message, 'error');
-                closeEditModal();
-            }
-        } catch (error) {
-            showNotification('Dosya okuma hatası', 'error');
-            closeEditModal();
-        }
-    };
+    // Action Modal Logic (Unified Preview & Rename)
+    window.openActionModal = async (type, id, filename, mimeType = '', size = 0) => {
+        if (!actionModal) return;
 
-    window.closeEditModal = () => {
-        editModal.classList.add('hidden');
-        currentEditingFileId = null;
-    };
+        // Find file for category & md5
+        const file = files.find(f => f.id === id);
 
-    saveEditBtn.onclick = async () => {
-        if (!currentEditingFileId) return;
-        const content = editContentTextarea.value;
-        
-        try {
-            const response = await fetch('api/files.php?action=save_content', {
+        // Reset & Show Modal
+        actionModal.classList.remove('hidden');
+        setTimeout(() => {
+            actionModalContainer.classList.remove('scale-95', 'opacity-0');
+            actionModalContainer.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        actionModalTitle.textContent = filename;
+        actionModalInfo.textContent = '';
+        actionModalButtons.innerHTML = '';
+        actionModalBody.innerHTML = `
+            <div id="modal-loader" class="flex flex-col items-center gap-4 py-20">
+                <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm font-bold animate-pulse text-gray-500">Yükleniyor...</p>
+            </div>
+        `;
+
+        if (type === 'preview') {
+            actionModalIcon.innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i>';
+            actionModalInfo.textContent = `${mimeType} • ${formatBytes(size)} • MD5: ${file?.md5_hash || 'N/A'}`;
+            
+            const downloadUrl = `api/download.php?id=${id}&preview=1`;
+            const ext = filename.split('.').pop().toLowerCase();
+
+            // Log preview action
+            fetch('api/logs.php?action=add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: currentEditingFileId, content })
-            });
-            const result = await response.json();
-            if (result.success) {
-                showNotification('Dosya kaydedildi');
-                closeEditModal();
+                body: JSON.stringify({ action: 'PREVIEW', details: `Dosya önizlendi: ${filename}` })
+            }).catch(e => console.error('Log error:', e));
+
+            if (isImage(mimeType, filename)) {
+                actionModalBody.innerHTML = `<img src="${downloadUrl}" class="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl transition-all duration-500 opacity-0" onload="this.classList.remove('opacity-0')">`;
+            } else if (ext === 'pdf') {
+                actionModalBody.innerHTML = `<iframe src="${downloadUrl}" class="w-full h-[70vh] border-0 rounded-b-xl"></iframe>`;
+            } else if (['txt', 'py', 'js', 'html', 'css', 'php', 'json', 'sql', 'bat'].includes(ext)) {
+                try {
+                    const response = await fetch(`api/files.php?action=get_content&id=${id}`);
+                    const result = await response.json();
+                    if (result.success) {
+                        actionModalBody.innerHTML = `
+                            <div class="w-full h-[70vh] p-6 overflow-auto bg-gray-900 text-gray-300 font-mono text-xs leading-relaxed selection:bg-blue-500/30">
+                                <pre class="whitespace-pre-wrap break-all">${result.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                            </div>
+                        `;
+                    } else {
+                        actionModalBody.innerHTML = `<div class="py-20 text-red-500 font-bold">${result.message}</div>`;
+                    }
+                } catch (e) {
+                    actionModalBody.innerHTML = `<div class="py-20 text-red-500 font-bold">İçerik yüklenemedi.</div>`;
+                }
             } else {
-                showNotification(result.message, 'error');
+                actionModalBody.innerHTML = `
+                    <div class="py-20 flex flex-col items-center gap-4 text-gray-400">
+                        <i data-lucide="alert-circle" class="w-16 h-16 opacity-20"></i>
+                        <p class="font-bold text-lg">Bu dosya türü önizlenemez.</p>
+                        <p class="text-sm">Dosyayı indirerek görüntüleyebilirsiniz.</p>
+                    </div>
+                `;
             }
-        } catch (error) {
-            showNotification('Kaydetme hatası', 'error');
+
+            actionModalButtons.innerHTML = `
+                <button onclick="closeActionModal()" class="px-6 py-2 text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all">Kapat</button>
+                <a href="api/download.php?id=${id}" class="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-none hover:bg-blue-700 transition-all flex items-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> İndir
+                </a>
+            `;
+        } else if (type === 'rename') {
+            actionModalIcon.innerHTML = '<i data-lucide="type" class="w-5 h-5"></i>';
+            actionModalTitle.textContent = 'Dosyayı Yeniden Adlandır';
+            
+            actionModalBody.innerHTML = `
+                <div class="w-full max-w-md p-10">
+                    <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Yeni Dosya Adı</label>
+                    <input type="text" id="rename-input-field" value="${filename}" class="w-full px-5 py-4 bg-white dark:bg-dark-bg border-2 border-gray-100 dark:border-dark-border rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all shadow-sm">
+                    <p class="mt-3 text-[10px] text-gray-400 font-medium">Uzantıyı (örn: .jpg) değiştirmeniz önerilmez.</p>
+                </div>
+            `;
+
+            actionModalButtons.innerHTML = `
+                <button onclick="closeActionModal()" class="px-6 py-2 text-gray-500 font-bold hover:bg-gray-100 dark:hover:bg-dark-bg rounded-xl transition-all">İptal</button>
+                <button id="confirm-rename-btn" class="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-none hover:bg-blue-700 transition-all">Güncelle</button>
+            `;
+
+            const confirmBtn = document.getElementById('confirm-rename-btn');
+            const inputField = document.getElementById('rename-input-field');
+            
+            inputField.focus();
+            inputField.select();
+
+            confirmBtn.onclick = async () => {
+                const newName = inputField.value.trim();
+                if (!newName || newName === filename) {
+                    closeActionModal();
+                    return;
+                }
+
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>...';
+
+                try {
+                    const response = await fetch('api/files.php?action=rename', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, new_name: newName })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showNotification('Dosya başarıyla güncellendi');
+                        loadFiles();
+                        closeActionModal();
+                    } else {
+                        showNotification(result.message, 'error');
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = 'Güncelle';
+                    }
+                } catch (error) {
+                    showNotification('İşlem başarısız', 'error');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Güncelle';
+                }
+            };
         }
+
+        if (window.lucide) lucide.createIcons();
     };
+
+    window.closeActionModal = () => {
+        if (!actionModal) return;
+        actionModalContainer.classList.add('scale-95', 'opacity-0');
+        actionModalContainer.classList.remove('scale-100', 'opacity-100');
+        setTimeout(() => {
+            actionModal.classList.add('hidden');
+            actionModalBody.innerHTML = '';
+        }, 200);
+    };
+
+    // Old functions fallback (prevent errors)
+    window.openPreviewModal = (id, filename, mimeType, size) => window.openActionModal('preview', id, filename, mimeType, size);
+    window.closePreviewModal = () => window.closeActionModal();
+    window.openEditModal = (id, filename) => window.openActionModal('rename', id, filename);
+    window.closeEditModal = () => window.closeActionModal();
 
     // Tag Modal Logic
     window.openTagModal = (id, tags) => {
@@ -911,123 +1172,107 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    const uploadStatusContainer = document.getElementById('upload-status-container');
-
-    const uploadFile = (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
+    // File Upload Logic (Chunked)
+    const uploadFile = async (file) => {
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        const fileUuid = crypto.randomUUID();
         
-        const uploadId = 'upload-' + Math.random().toString(36).substr(2, 9);
-        
-        // Create upload status card
-        const card = document.createElement('div');
-        card.className = 'bg-white dark:bg-dark-card p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-dark-border flex flex-col gap-2 transition-all duration-300 transform translate-y-4 opacity-0';
-        card.id = uploadId;
-        card.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
-                    <i data-lucide="upload" class="w-4 h-4"></i>
+        // Create Status UI
+        const statusId = 'upload-' + Date.now();
+        const statusHtml = `
+            <div id="${statusId}" class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-2xl flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 truncate max-w-[150px]">${file.name}</span>
+                    <span id="${statusId}-pct" class="text-[10px] font-black text-blue-600">0%</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 truncate">${file.name}</p>
-                    <p class="text-xs font-bold status-text">Hazırlanıyor...</p>
+                <div class="w-full bg-gray-100 dark:bg-dark-bg rounded-full h-1.5 overflow-hidden">
+                    <div id="${statusId}-progress" class="bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
                 </div>
-            </div>
-            <div class="w-full bg-gray-100 dark:bg-dark-bg rounded-full h-1.5 overflow-hidden">
-                <div class="progress-bar bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
+                <p id="${statusId}-msg" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Yükleniyor...</p>
             </div>
         `;
-        uploadStatusContainer.appendChild(card);
-        lucide.createIcons({ props: { class: 'w-4 h-4' }, root: card });
+        if (uploadStatusContainer) uploadStatusContainer.insertAdjacentHTML('afterbegin', statusHtml);
 
-        // Animate in
-        setTimeout(() => {
-            card.classList.remove('translate-y-4', 'opacity-0');
-        }, 10);
+        try {
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(file.size, start + CHUNK_SIZE);
+                const chunk = file.slice(start, end);
 
-        const xhr = new XMLHttpRequest();
-        const progressBar = card.querySelector('.progress-bar');
-        const statusText = card.querySelector('.status-text');
+                const formData = new FormData();
+                formData.append('file', chunk);
+                formData.append('fileName', file.name);
+                formData.append('chunkIndex', i);
+                formData.append('totalChunks', totalChunks);
+                formData.append('fileUuid', fileUuid);
+                formData.append('totalSize', file.size);
+                formData.append('mimeType', file.type);
+                formData.append('category', document.getElementById('upload-category')?.value || 'Genel');
 
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                if (progressBar) progressBar.style.width = percent + '%';
-                if (statusText) statusText.textContent = `%${percent} yüklendi...`;
-            }
-        };
+                const response = await fetch('api/upload.php?action=upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
 
-        xhr.onload = () => {
-            let result;
-            try {
-                result = JSON.parse(xhr.responseText);
-            } catch (e) {
-                if (xhr.responseText.includes('"success":true')) {
-                    result = { success: true };
-                } else {
-                    result = { success: false, message: 'Sunucudan geçersiz yanıt geldi.' };
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+
+                const pct = Math.round(((i + 1) / totalChunks) * 100);
+                const progressBar = document.getElementById(`${statusId}-progress`);
+                const pctText = document.getElementById(`${statusId}-pct`);
+                const msgText = document.getElementById(`${statusId}-msg`);
+
+                if (progressBar) progressBar.style.width = pct + '%';
+                if (pctText) pctText.textContent = pct + '%';
+                
+                if (pct === 100 && totalChunks > 1) {
+                    if (msgText) msgText.textContent = 'Parçalar Birleştiriliyor...';
                 }
             }
 
-            if (xhr.status === 200 && result.success) {
-                if (statusText) statusText.textContent = 'Tamamlandı!';
-                if (statusText) statusText.className = 'text-xs font-bold status-text text-green-600';
-                if (progressBar) progressBar.className = 'progress-bar bg-green-600 h-full transition-all duration-300';
-                if (progressBar) progressBar.style.width = '100%';
-                showNotification(`${file.name} başarıyla yüklendi`);
-                
-                setTimeout(loadFiles, 500);
-            } else {
-                if (statusText) statusText.textContent = result.message || 'Hata oluştu!';
-                if (statusText) statusText.className = 'text-xs font-bold status-text text-red-600';
-                if (progressBar) progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
-                showNotification(result.message || 'Yükleme hatası', 'error');
-            }
-
+            showNotification('Dosya başarıyla yüklendi');
+            loadFiles();
             setTimeout(() => {
-                card.classList.add('translate-y-4', 'opacity-0');
-                setTimeout(() => card.remove(), 300);
-            }, 4000);
-        };
+                const el = document.getElementById(statusId);
+                if (el) el.remove();
+            }, 3000);
 
-        xhr.onerror = () => {
-            if (statusText) statusText.textContent = 'Bağlantı hatası!';
-            if (statusText) statusText.className = 'text-xs font-bold status-text text-red-600';
-            if (progressBar) progressBar.className = 'progress-bar bg-red-600 h-full transition-all duration-300';
-            setTimeout(() => card.remove(), 4000);
-        };
-
-        xhr.open('POST', 'api/files.php?action=upload');
-        xhr.send(formData);
-    };
-
-    // Event Listeners: File Upload
-    fileInput.onchange = (e) => {
-        if (e.target.files.length > 0) {
-            Array.from(e.target.files).forEach(file => uploadFile(file));
-            fileInput.value = '';
+        } catch (error) {
+            console.error('Upload error:', error);
+            showNotification(error.message || 'Yükleme başarısız', 'error');
+            const el = document.getElementById(statusId);
+            if (el) el.classList.add('border-red-500');
+            const msgText = document.getElementById(`${statusId}-msg`);
+            if (msgText) msgText.textContent = 'HATA: ' + error.message;
         }
     };
 
-    // Drag & Drop
-    dropZone.onclick = () => fileInput.click();
-    
-    dropZone.ondragover = (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    };
+    if (fileInput) {
+        fileInput.onchange = (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => uploadFile(file));
+        };
+    }
 
-    dropZone.ondragleave = () => {
-        dropZone.classList.remove('dragover');
-    };
-
-    dropZone.ondrop = (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            Array.from(e.dataTransfer.files).forEach(file => uploadFile(file));
-        }
-    };
+    if (dropZone) {
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        };
+        dropZone.ondragleave = () => {
+            dropZone.classList.remove('dragover');
+        };
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            files.forEach(file => uploadFile(file));
+        };
+        dropZone.onclick = () => fileInput && fileInput.click();
+    }
 
     // IT Tools Logic
     if (pingBtn) pingBtn.onclick = async () => {
@@ -1204,7 +1449,4 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     checkAuth();
-});
-window.addEventListener('load', () => {
-    if(typeof loadNotes === 'function') loadNotes();
 });
